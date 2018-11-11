@@ -17,8 +17,7 @@ import static java.lang.System.out;
  *  </b>
  *
  */
-
-public class DavisBase {
+public class DavisBasePromptExample {
 
 	/* This can be changed to whatever you like */
 	static String prompt = "davisql> ";
@@ -155,10 +154,6 @@ public class DavisBase {
 		*  You will want to rewrite this method to interpret more complex commands. 
 		*/
 		switch (commandTokens.get(0)) {
-			case "show":
-				System.out.println("CASE: SHOW");
-				showTable(userCommand);
-				break;
 			case "select":
 				System.out.println("CASE: SELECT");
 				parseQuery(userCommand);
@@ -174,14 +169,6 @@ public class DavisBase {
 			case "update":
 				System.out.println("CASE: UPDATE");
 				parseUpdate(userCommand);
-				break;
-			case "insert":
-				System.out.println("CASE: INSERT");
-				parseInsert(userCommand);
-				break;
-			case "delete":
-				System.out.println("CASE: DELETE");
-				parseDelete(userCommand);
 				break;
 			case "help":
 				help();
@@ -203,29 +190,12 @@ public class DavisBase {
 	
 
 	/**
-	 *  Stub method for showing all tables
-	 *  @param dropTableString is a String of the user input
-	 */
-	public static void showTable(String showTableString) {
-		System.out.println("STUB: This is the showTable method.");
-		
-		if(checkShowTable(showTableString))
-		{
-			System.out.println("SUCCESS! This will print all tables");
-		}
-		
-	}
-	
-	/**
 	 *  Stub method for dropping tables
 	 *  @param dropTableString is a String of the user input
 	 */
 	public static void dropTable(String dropTableString) {
 		System.out.println("STUB: This is the dropTable method.");
-		if(checkDropTable(dropTableString))
-		{
-			System.out.println("\tParsing the string:\"" + dropTableString + "\"");
-		}
+		System.out.println("\tParsing the string:\"" + dropTableString + "\"");
 	}
 	
 	/**
@@ -234,10 +204,7 @@ public class DavisBase {
 	 */
 	public static void parseQuery(String queryString) {
 		System.out.println("STUB: This is the parseQuery method");
-		if(checkQuery(queryString))
-		{
-			System.out.println("\tParsing the string:\"" + queryString + "\"");
-		}
+		System.out.println("\tParsing the string:\"" + queryString + "\"");
 	}
 
 	/**
@@ -247,15 +214,6 @@ public class DavisBase {
 	public static void parseUpdate(String updateString) {
 		System.out.println("STUB: This is the dropTable method");
 		System.out.println("Parsing the string:\"" + updateString + "\"");
-	}
-	
-	/**
-	 *  Stub method for dropping tables
-	 *  @param dropTableString is a String of the user input
-	 */
-	public static void parseDelete(String deleteString) {
-		System.out.println("STUB: This is the parseDelete method.");
-		System.out.println("\tParsing the string:\"" + deleteString + "\"");
 	}
 
 	
@@ -298,238 +256,23 @@ public class DavisBase {
 		 */
 	}
 	
-	/**
-	 *  Stub method for inserting a row into an existing table.
-	 *  @param queryString is a String of the user input
-	 */
-	public static void parseInsert(String insertString)
-	{
-		System.out.println("STUB: This is the dropTable method.");
-		System.out.println("\tParsing the string:\"" + insertString + "\"");
-	}
-	
-	/*
-	 * This function checks if command is exactly "show table;" and returns true if so.
-	 * Print error and return false if otherwise.
-	 */
-	private static boolean checkShowTable(String showTableString)
-	{
-		ArrayList<String> tokens = new ArrayList<String>(Arrays.asList(showTableString.split(" ")));
-		if(tokens.size() == 2 && tokens.get(1).equals("tables"))
-		{
-			return true;
-		}
-		else
-		{
-			System.out.println("SYNTAX ERROR. Did you mean \"show tables\"?");
-			return false;
-		}
-		
-	}
-	
-	private static boolean checkQuery(String queryString)
-	{
-		ArrayList<String> tokens = new ArrayList<String>(Arrays.asList(queryString.split(" ")));
-		
-		//Check structure of statement.
-		if(!(tokens.size() >= 4))
-		{
-			System.out.println("SYNTAX ERROR. Select Statement is incomplete. "
-					+ " Format is \\\"SELECT 'column_name' FROM 'table_name' WHERE 'condition'\"");
-			return false;
-		}
-		
-		//Look at column name and table name.
-		if(!(nameCheck(tokens.get(1)) || (tokens.get(1).equals("*"))))
-		{
-			System.out.println("SYNTAX ERROR. Column name is invalid");
-			return false;
-		}
-		else if(!nameCheck(tokens.get(3)))
-		{
-			System.out.println("SYNTAX ERROR. Table name is invalid");
-			return false;
-		}
-		if(tokens.size() > 4)
-		{
-			if(tokens.get(4).equals("where"))
-			{
-				//Check the case where user typed in "where true/false"
-				if(tokens.size() == 6)
-				{
-					if((relationalOp(tokens.get(5)).equals("true") || relationalOp(tokens.get(5)).equals("false")))
-						return true;
-					else
-					{
-						String attributeName = "";
-						String value = "";
-						boolean relation = false;
-						for(int i = 0; i < tokens.get(5).length();i++)
-						{
-							
-							String temp = "";
-							temp += tokens.get(5).charAt(i);
-							
-							if(!relation && temp.equals("!") && !relationalOp(temp + tokens.get(5).charAt(i+1)).isEmpty())
-							{
-								relation = true;
-								i += 2;
-							}
-							else if(!relation && !relationalOp(temp).isEmpty())
-							{
-								if(!relationalOp(temp + tokens.get(5).charAt(i+1)).isEmpty())
-								{
-									relation = true;
-									i += 2;
-								}
-								else
-								{
-									relation = true;
-									i += 1;
-								}
-							}
-							
-							if(!relation)
-								attributeName += tokens.get(5).charAt(i);
-							else
-								value += tokens.get(5).charAt(i);
-							
-							if(!relation)
-							{
-								if(!nameCheck(attributeName))
-								{
-									System.out.println("TRUE");
-									System.out.println("SYNTAX ERROR. Condition is incorrect. "
-											+ " Format is \"'attribute' 'relational' 'value'\"");
-									return false;
-								}
-							}
-							else
-							{
-								if(!nameCheck(value) && !value.chars().allMatch(Character::isDigit))
-								{
-									System.out.println(value);
-									System.out.println("TRUE");
-									System.out.println("SYNTAX ERROR. Condition is incorrect. "
-											+ " Format is \"'attribute' 'relational' 'value'\"");
-									return false;
-								}
-							}
-						}
-						
-						return true;
-					}
-				}
-				else if (tokens.size() == 8)
-				{
-					if(nameCheck(tokens.get(5)) && !relationalOp(tokens.get(6)).isEmpty() 
-							&& (nameCheck(tokens.get(7)) || (tokens.get(7).chars().allMatch(Character::isDigit))))
-					{
-						return true;
-					}
-					else
-					{
-						System.out.println("SYNTAX ERROR. Condition is incorrect. "
-								+ " Format is \"'attribute' 'relational' 'value'\"");
-						return false;
-					}
-				}
-				else
-				{
-					System.out.println("SYNTAX ERROR. Condition is incorrect. "
-							+ " Format is \"'attribute' 'relational' 'value'\"");
-					return false;
-				}
-			}
-			else
-			{
-				System.out.println("SYNTAX ERROR. Select Statement is incorrect. "
-						+ " Format is \\\"SELECT 'column_name' FROM 'table_name' WHERE 'condition'\"");
-				return false;
-			}
-		}
-		else
-			return true;
-	}
-	
-	private static boolean checkDropTable(String dropTableString)
-	{
-		ArrayList<String> tokens = new ArrayList<String>(Arrays.asList(dropTableString.split(" ")));
-		if(tokens.size() < 3)
-		{
-			System.out.println("SYNTAX ERROR. Drop statment is incomplete. Format is \"DROP TABLE 'table_name'\"");
-			return false;
-		}
-		else if(!tokens.get(1).equals("table"))
-		{
-			System.out.println("SYNTAX ERROR. Drop statment is incorrect. Format is \"DROP TABLE 'table_name'\"");
-			return false;
-		}
-		else if(!nameCheck(tokens.get(2)))//Invalid table name.
-		{
-			System.out.println("SYNTAX ERROR. Table name is invalid.");
-			return false;
-		}
-		else//Syntax is correct.
-			return true;
-	}
-	
-	private static boolean checkUpdate(String updateString)
+	private boolean checkQuery(String queryString)
 	{
 		return false;
 	}
 	
-	private static boolean checkDelete(String deleteString)
+	private boolean checkDrop(String dropTableString)
 	{
 		return false;
 	}
 	
-	private static boolean checkCreateTable(String createTableString)
+	private boolean checkUpdate(String updateString)
 	{
 		return false;
 	}
 	
-	private static boolean nameCheck(String name)
+	private boolean checkCreateTable(String createTableString)
 	{
-		if(Character.isDigit(name.charAt(0)) || (!Character.isLetter(name.charAt(0)) 
-				&& !(name.charAt(0) == '_' || name.charAt(0) == '@' || name.charAt(0) == '#')))
-		{
-			return false;
-		}
-		
-		for(int i = 0; i < name.length(); i++)
-		{	
-			if(!Character.isLetterOrDigit(name.charAt(i)) && name.charAt(i) == '.')
-			{
-				return false;
-			}
-		}
-		
-		return true;
-	}
-	
-	private static String relationalOp(String r)
-	{
-		switch(r)
-		{
-			case "=":
-				return r;
-			case ">":
-				return r;
-			case ">=":
-				return r;
-			case "<":
-				return r;
-			case "<=":
-				return r;
-			case "!=":
-				return r;
-			case "true":
-				return r;
-			case "false":
-				return r;
-			default:
-				return "";
-		}
+		return false;
 	}
 }
