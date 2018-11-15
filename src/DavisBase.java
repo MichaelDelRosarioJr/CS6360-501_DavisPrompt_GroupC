@@ -5,6 +5,8 @@ import java.util.Scanner;
 import java.util.SortedMap;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+
 import static java.lang.System.out;
 
 /**
@@ -148,6 +150,8 @@ public class DavisBase {
 		 * method inside each case statement */
 		// String[] commandTokens = userCommand.split(" ");
 		ArrayList<String> commandTokens = new ArrayList<String>(Arrays.asList(userCommand.split(" ")));
+		//ArrayList<String> commandTokens = cleanCommand(userCommand);
+		
 		
 
 		/*
@@ -169,7 +173,15 @@ public class DavisBase {
 				break;
 			case "create":
 				System.out.println("CASE: CREATE");
-				parseCreateTable(userCommand);
+				if(commandTokens.size() > 1)
+				{
+					if(commandTokens.get(1).equals("index") || commandTokens.get(1).equals("unique"))
+						parseCreateIndex(userCommand);
+					else
+						parseCreateTable(userCommand);
+				}
+				else
+					System.out.println("I didn't understand the command: \"" + userCommand + "\"");
 				break;
 			case "update":
 				System.out.println("CASE: UPDATE");
@@ -246,7 +258,10 @@ public class DavisBase {
 	 */
 	public static void parseUpdate(String updateString) {
 		System.out.println("STUB: This is the dropTable method");
-		System.out.println("Parsing the string:\"" + updateString + "\"");
+		if(checkUpdate(updateString))
+		{
+			System.out.println("Parsing the string:\"" + updateString + "\"");
+		}
 	}
 	
 	/**
@@ -255,7 +270,10 @@ public class DavisBase {
 	 */
 	public static void parseDelete(String deleteString) {
 		System.out.println("STUB: This is the parseDelete method.");
-		System.out.println("\tParsing the string:\"" + deleteString + "\"");
+		if(checkDelete(deleteString))
+		{
+			System.out.println("\tParsing the string:\"" + deleteString + "\"");
+		}
 	}
 
 	
@@ -267,26 +285,36 @@ public class DavisBase {
 		
 		System.out.println("STUB: Calling your method to create a table");
 		System.out.println("Parsing the string:\"" + createTableString + "\"");
-		ArrayList<String> createTableTokens = new ArrayList<String>(Arrays.asList(createTableString.split(" ")));
-
-		/* Define table file name */
-		String tableFileName = createTableTokens.get(2) + ".tbl";
-
-		/* YOUR CODE GOES HERE */
+		//ArrayList<String> createTableTokens = cleanCommand(createTableString);
 		
-		/*  Code to create a .tbl file to contain table data */
-		try {
-			/*  Create RandomAccessFile tableFile in read-write mode.
-			 *  Note that this doesn't create the table file in the correct directory structure
-			 */
-			RandomAccessFile tableFile = new RandomAccessFile(tableFileName, "rw");
-			tableFile.setLength(pageSize);
-			tableFile.seek(0);
-			tableFile.writeInt(63);
+		if(!checkCreateTable(createTableString))
+		{
+			return;
 		}
-		catch(Exception e) {
-			System.out.println(e);
+		else
+		{
+			//TEST: See a success message.
+			System.out.println("SUCCESS! Creating table");
 		}
+
+//		/* Define table file name */
+//		String tableFileName = createTableTokens.get(2) + ".tbl";
+//
+//		/* YOUR CODE GOES HERE */
+//		
+//		/*  Code to create a .tbl file to contain table data */
+//		try {
+//			/*  Create RandomAccessFile tableFile in read-write mode.
+//			 *  Note that this doesn't create the table file in the correct directory structure
+//			 */
+//			RandomAccessFile tableFile = new RandomAccessFile(tableFileName, "rw");
+//			tableFile.setLength(pageSize);
+//			tableFile.seek(0);
+//			tableFile.writeInt(63);
+//		}
+//		catch(Exception e) {
+//			System.out.println(e);
+//		}
 		
 		/*  Code to insert a row in the davisbase_tables table 
 		 *  i.e. database catalog meta-data 
@@ -298,6 +326,14 @@ public class DavisBase {
 		 */
 	}
 	
+	public static void parseCreateIndex(String createIndexString) {
+		System.out.println("STUB: This is the createQuery method");
+		if(checkCreateIndex(createIndexString))
+		{
+			System.out.println("\tParsing the string:\"" + createIndexString + "\"");
+		}
+	}
+	
 	/**
 	 *  Stub method for inserting a row into an existing table.
 	 *  @param queryString is a String of the user input
@@ -305,7 +341,11 @@ public class DavisBase {
 	public static void parseInsert(String insertString)
 	{
 		System.out.println("STUB: This is the dropTable method.");
-		System.out.println("\tParsing the string:\"" + insertString + "\"");
+		if(checkInsert(insertString))
+		{
+			System.out.println("\tParsing the string:\"" + insertString + "\"");
+		}
+		
 	}
 	
 	/*
@@ -314,7 +354,7 @@ public class DavisBase {
 	 */
 	private static boolean checkShowTable(String showTableString)
 	{
-		ArrayList<String> tokens = new ArrayList<String>(Arrays.asList(showTableString.split(" ")));
+		ArrayList<String> tokens =  cleanCommand(showTableString);
 		if(tokens.size() == 2 && tokens.get(1).equals("tables"))
 		{
 			return true;
@@ -327,134 +367,91 @@ public class DavisBase {
 		
 	}
 	
+	//This function checks the syntax of select query
 	private static boolean checkQuery(String queryString)
 	{
-		ArrayList<String> tokens = new ArrayList<String>(Arrays.asList(queryString.split(" ")));
+		ArrayList<String> tokens = cleanCommand(queryString);
+		/*
+		 * state determines the structure of the statement
+		 * states are:
+		 * S = select column list  portion
+		 * F = from table portion
+		 * W = where condition portion
+		 * E = end
+		 */
+		char state = 'S';
+		int itr = 1;
 		
-		//Check structure of statement.
-		if(!(tokens.size() >= 4))
+		if(tokens.size() < 4)
 		{
-			System.out.println("SYNTAX ERROR. Select Statement is incomplete. "
-					+ " Format is \\\"SELECT 'column_name' FROM 'table_name' WHERE 'condition'\"");
-			return false;
+			state = '0';
 		}
 		
-		//Look at column name and table name.
-		if(!(nameCheck(tokens.get(1)) || (tokens.get(1).equals("*"))))
+		while(state != 'E')
 		{
-			System.out.println("SYNTAX ERROR. Column name is invalid");
-			return false;
-		}
-		else if(!nameCheck(tokens.get(3)))
-		{
-			System.out.println("SYNTAX ERROR. Table name is invalid");
-			return false;
-		}
-		if(tokens.size() > 4)
-		{
-			if(tokens.get(4).equals("where"))
+			switch(state)
 			{
-				//Check the case where user typed in "where true/false"
-				if(tokens.size() == 6)
-				{
-					if((relationalOp(tokens.get(5)).equals("true") || relationalOp(tokens.get(5)).equals("false")))
-						return true;
-					else
+				case 'S':
+					if(itr == 1 && !(nameCheck(tokens.get(itr)) || tokens.get(itr).equals("*")))
 					{
-						String attributeName = "";
-						String value = "";
-						boolean relation = false;
-						for(int i = 0; i < tokens.get(5).length();i++)
+						//System.out.println(itr);
+						state = '0';
+					}
+					else if(tokens.get(itr).equals("from"))
+					{
+						//System.out.println(itr);
+						state = 'F';
+					}
+					else if(itr > 1)
+					{
+						if(itr % 2 == 0)
 						{
-							
-							String temp = "";
-							temp += tokens.get(5).charAt(i);
-							
-							if(!relation && temp.equals("!") && !relationalOp(temp + tokens.get(5).charAt(i+1)).isEmpty())
+							if(!tokens.get(itr).equals(","))
 							{
-								relation = true;
-								i += 2;
-							}
-							else if(!relation && !relationalOp(temp).isEmpty())
-							{
-								if(!relationalOp(temp + tokens.get(5).charAt(i+1)).isEmpty())
-								{
-									relation = true;
-									i += 2;
-								}
-								else
-								{
-									relation = true;
-									i += 1;
-								}
-							}
-							
-							if(!relation)
-								attributeName += tokens.get(5).charAt(i);
-							else
-								value += tokens.get(5).charAt(i);
-							
-							if(!relation)
-							{
-								if(!nameCheck(attributeName))
-								{
-									System.out.println("TRUE");
-									System.out.println("SYNTAX ERROR. Condition is incorrect. "
-											+ " Format is \"'attribute' 'relational' 'value'\"");
-									return false;
-								}
-							}
-							else
-							{
-								if(!nameCheck(value) && !value.chars().allMatch(Character::isDigit))
-								{
-									System.out.println(value);
-									System.out.println("TRUE");
-									System.out.println("SYNTAX ERROR. Condition is incorrect. "
-											+ " Format is \"'attribute' 'relational' 'value'\"");
-									return false;
-								}
+								//System.out.println(itr);
+								state = '0';
 							}
 						}
-						
-						return true;
+						else
+						{
+							if(!nameCheck(tokens.get(itr)))
+							{
+								//System.out.println(itr);
+								state = '0';
+							}
+						}
 					}
-				}
-				else if (tokens.size() == 8)
-				{
-					if(nameCheck(tokens.get(5)) && !relationalOp(tokens.get(6)).isEmpty() 
-							&& (nameCheck(tokens.get(7)) || (tokens.get(7).chars().allMatch(Character::isDigit))))
-					{
-						return true;
-					}
+					break;
+				case 'F':
+					if(!nameCheck(tokens.get(itr)))
+						state = '0';
 					else
-					{
-						System.out.println("SYNTAX ERROR. Condition is incorrect. "
-								+ " Format is \"'attribute' 'relational' 'value'\"");
-						return false;
-					}
-				}
-				else
-				{
-					System.out.println("SYNTAX ERROR. Condition is incorrect. "
-							+ " Format is \"'attribute' 'relational' 'value'\"");
+						state = 'W';
+					break;
+				case 'W':
+					if(itr >= tokens.size())
+						state = 'E';
+					else if(checkCondition(tokens.subList(itr, tokens.size())))
+						state = 'E';
+					else
+						state = '0';
+					break;
+				default:
+					System.out.println("SYNTAX ERROR. Select Statement is incomplete. "
+							+ " Format is \\\"SELECT 'column_name' FROM 'table_name' WHERE 'condition'\"");
 					return false;
-				}
 			}
-			else
-			{
-				System.out.println("SYNTAX ERROR. Select Statement is incorrect. "
-						+ " Format is \\\"SELECT 'column_name' FROM 'table_name' WHERE 'condition'\"");
-				return false;
-			}
+			
+			itr++;
 		}
-		else
-			return true;
+		
+		return true;
 	}
 	
+	//This function checks the syntax of drop table statement
 	private static boolean checkDropTable(String dropTableString)
 	{
-		ArrayList<String> tokens = new ArrayList<String>(Arrays.asList(dropTableString.split(" ")));
+		ArrayList<String> tokens =  cleanCommand(dropTableString);
 		if(tokens.size() < 3)
 		{
 			System.out.println("SYNTAX ERROR. Drop statment is incomplete. Format is \"DROP TABLE 'table_name'\"");
@@ -474,29 +471,390 @@ public class DavisBase {
 			return true;
 	}
 	
+	//This function checks the syntax of update statement.
 	private static boolean checkUpdate(String updateString)
 	{
-		return false;
+		ArrayList<String> tokens = cleanCommand(updateString);
+		
+		//Check size
+		if(tokens.size() < 6)
+		{
+			System.out.println("SYNTAX ERROR. Update statement is incorrect. "
+					+ " Format is \"UPDATE 'table_name' SET 'column_name' = value [WHERE 'condition']\"");
+			return false;
+		}
+		
+		//Check keywords
+		if(!(nameCheck(tokens.get(1)) && tokens.get(2).equals("set")))
+		{
+			System.out.println("SYNTAX ERROR. Update statement is incorrect. "
+					+ " Format is \"UPDATE 'table_name' SET 'column_name' = value [WHERE 'condition']\"");
+			return false;
+		}
+		
+		//Check Set Portion
+		if(!(nameCheck(tokens.get(3)) && relationalOp(tokens.get(4)).equals("=") && (nameCheck(tokens.get(5)) || tokens.get(5).chars().allMatch(Character::isDigit))))
+		{
+			System.out.println("SYNTAX ERROR. Update statement is incorrect. "
+					+ " Format is \"UPDATE 'table_name' SET 'column_name' = value [WHERE 'condition']\"");
+			return false;
+		}
+		
+		if(tokens.size() > 6)
+			return checkCondition(tokens.subList(6, tokens.size()));
+		else
+			return true;
 	}
 	
+	//This function checks the syntax of delete statement
 	private static boolean checkDelete(String deleteString)
 	{
-		return false;
+		ArrayList<String> tokens = cleanCommand(deleteString);
+		
+		//Check size
+		if(tokens.size() < 3)
+		{
+			System.out.println("SYNTAX ERROR. Delete statement is incorrect. "
+					+ " Format is \"DELETE FROM 'table_name' [WHERE 'condition']\"");
+			return false;
+		}
+		
+		//Check keywords, and table name
+		if(!(tokens.get(1).equals("from") && nameCheck(tokens.get(2))))
+		{
+			System.out.println("SYNTAX ERROR. Delete statement is incorrect. "
+					+ " Format is \"DELETE FROM 'table_name' [WHERE 'condition']\"");
+			return false;
+		}
+		
+		//Check condition
+		if(tokens.size() > 3)
+		{
+			return checkCondition(tokens.subList(3, tokens.size()));
+		}
+		
+		return true;
 	}
 	
+	//This function checks the syntax of insert statement.
+	private static boolean checkInsert(String insertString)
+	{
+		ArrayList<String> tokens = cleanCommand(insertString);
+		/*
+		 * state determines the structure of the statement
+		 * states are:
+		 * I = insert into table_name portion
+		 * C = column list portion
+		 * V = values portion
+		 * A = value list portion
+		 * E = end
+		 */
+		char state = 'I';
+		int args = 0;
+		
+		for(int itr = 1; itr < tokens.size(); itr++)
+		{
+			//TEST: see iteration, string, and state.
+			//System.out.println(itr + ": " + tokens.get(itr) + "; state: " + state);
+			
+			switch(state)
+			{
+				case 'I':
+					if(itr == 1 && !tokens.get(itr).equals("into"))
+						state = '0';
+					else if(itr == 2 && !nameCheck(tokens.get(itr)))
+						state = '0';
+					else if(itr > 2 && !tokens.get(itr).equals("("))
+						state = '0';
+					else if (itr > 2)
+						state = 'C';
+					break;
+				case 'C':
+					if(itr == 4 && !nameCheck(tokens.get(itr)))
+						state = '0';
+					else
+					{
+						if(itr % 2 == 0)
+						{
+							if(!nameCheck(tokens.get(itr)))
+							{
+								state = '0';
+							}
+							args++;
+						}
+						else
+						{
+							if(!tokens.get(itr).equals(",") && !tokens.get(itr).equals(")"))
+							{
+								state = '0';
+							}
+							else if(tokens.get(itr).equals(")"))
+								state = 'V';
+							
+						}
+					}
+					break;
+				case 'V':
+					if(itr % 2 == 0 && !tokens.get(itr).equals("values"))
+						state = '0';
+					else if(itr % 2 == 1 && !tokens.get(itr).equals("("))
+						state = '0';
+					else if(itr % 2 == 1)
+						state = 'A';
+					break;
+				case 'A':
+					if(itr % 2 == 0)
+					{
+						if(!(nameCheck(tokens.get(itr)) || tokens.get(itr).chars().allMatch(Character::isDigit)) || args < 0)
+						{
+							state = '0';
+						}
+						else
+							args--;
+					}
+					else
+					{
+						if(!tokens.get(itr).equals(",") && !tokens.get(itr).equals(")"))
+						{
+							state = '0';
+						}
+						else if(tokens.get(itr).equals(")") && args != 0)
+							state = '0';
+						else if(tokens.get(itr).equals(")"))
+							state = 'E';
+						
+					}
+					break;
+				default:
+					System.out.println("SYNTAX ERROR. Insert statement is incorrect. "
+							+ " Format is \"INSERT INTO 'columns list' VALUES 'values list'\"");
+					return false;
+			}
+			
+			
+		}
+		
+		if(state != 'E')
+		{
+			System.out.println("SYNTAX ERROR. Insert statement is not structure properly. "
+					+ " Format is \"INSERT INTO 'columns list' VALUES 'values list'\"");
+			return false;
+		}
+		else
+			return true;
+	}
+	
+	//This function checks the syntax of create table statement.
 	private static boolean checkCreateTable(String createTableString)
 	{
-		return false;
+		ArrayList<String> tokens = cleanCommand(createTableString);
+		/*
+		 * state determines the structure of the statement
+		 * states are:
+		 * B = Create table name portion
+		 * C = column name portion
+		 * D = data type portion
+		 * N = not null portion
+		 * E = end
+		 */
+		char state = 'B';
+		/*
+		 * notState contains that not null state:
+		 * 0: not is absent.
+		 * 1: not is present but there is no null
+		 * 2: not null is present
+		 */
+		int notState = 0;
+		
+		for(int itr = 1; itr < tokens.size(); itr++)
+		{
+			//TEST: see iteration, string, and state.
+			System.out.println(itr + ": " + tokens.get(itr) + "; state: " + state);
+			
+			switch(state)
+			{
+				case 'B':
+					if(itr == 1 && !(tokens.get(itr).equals("table")))
+						state = '0';
+					else if(itr == 2 && !nameCheck(tokens.get(itr)))
+						state = '0';
+					else if(itr == 3 && tokens.get(itr).equals("("))
+						state = 'C';
+					break;
+				case 'C':
+					if(nameCheck(tokens.get(itr)))
+						state = 'D';
+					else
+						state = '0';
+					break;
+				case 'D':
+					if(!dataType(tokens.get(itr)).isEmpty())
+						state = 'N';
+					else
+						state = '0';
+					break;
+				case 'N':
+					if(tokens.get(itr).equals("not") && notState == 0)
+						notState++;
+					else if(tokens.get(itr).equals("null") && notState == 1)
+						notState++;
+					else if(tokens.get(itr).equals("null"))
+						state = '0';
+					else if(tokens.get(itr).equals(","))
+					{
+						state = 'C';
+						notState = 0; //Reset not null state.
+					}
+					else if(tokens.get(itr).equals(")"))
+						state = 'E';
+					break;
+				default:
+					System.out.println("SYNTAX ERROR. Create Table statement is not structure properly. "
+							+ " Format is \"CREATE TABLE ' table_name' (data data_type [NOT NULL], . . . , data data_type [NOT NULL])\"");
+				return false;
+			}
+		}
+		
+		if(state != 'E')
+		{
+			System.out.println("SYNTAX ERROR. Create Table statement is not structure properly. "
+					+ " Format is \"CREATE TABLE ' table_name' (data data_type [NOT NULL], . . . , data data_type [NOT NULL])\"");
+			return false;
+		}
+		else
+			return true;
 	}
 	
+	/*
+	 * This function checks the syntax of create index statement.
+	 * Returns true if syntax is correct or false if incorrect.
+	 */
+	private static boolean checkCreateIndex(String createIndexString)
+	{
+		ArrayList<String> tokens = cleanCommand(createIndexString);
+		/*
+		 * state determines the structure of the statement
+		 * states are:
+		 * C = Create portion
+		 * I = Index name portion
+		 * T = on table_name portion
+		 * L = Column list portion
+		 * E = end
+		 */
+		char state = 'C';
+		int unique = 0;
+		if(tokens.get(1).equals("unique"))
+			unique = 1;
+		
+		for(int itr = 1; itr < tokens.size(); itr++)
+		{
+			//TEST: see iteration, string, and state.
+			System.out.println(itr + ": " + tokens.get(itr) + "; state: " + state);
+			
+			switch(state)
+			{
+				case 'C':
+					if(itr == 1 && !(tokens.get(itr).equals("unique") || tokens.get(itr).equals("index")))
+						state = '0';
+					else if(tokens.get(itr).equals("index"))
+						state = 'I';
+					break;
+				case 'I':
+					if(nameCheck(tokens.get(itr)))
+						state = 'T';
+					else
+						state = '0';
+					break;
+				case 'T':
+					if(tokens.get(itr).equals("on") && nameCheck(tokens.get(itr + 1)))
+					{
+						itr++;
+					}
+					else if(tokens.get(itr).equals("("))
+						state = 'L';
+
+					break;
+				case 'L':
+					if((itr-unique) % 2 == 0)
+					{
+						if(!nameCheck(tokens.get(itr)))
+						{
+							state = '0';
+						}
+					}
+					else
+					{
+						if(!tokens.get(itr).equals(",") && !tokens.get(itr).equals(")"))
+						{
+							state = '0';
+						}
+						else if(tokens.get(itr).equals(")"))
+							state = 'E';
+					}
+					break;
+				default:
+					System.out.println("SYNTAX ERROR. Create Index statement is incorrect. "
+							+ " Format is \"CREATE [UNIQUE] INDEX 'index_name' ON 'table_name' 'column list'\"");
+					return false;
+			}
+		}
+		
+		//If state is not E, then the structure of the statement is incorrect.
+		if(state != 'E')
+		{
+			System.out.println("SYNTAX ERROR. Create Index statement is not structure properly. "
+					+ " Format is \"CREATE [UNIQUE] INDEX 'index_name' ON 'table_name' 'column list'\"");
+			return false;
+		}
+		else
+			return true;
+	}
+	
+	/*
+	 * This function accepts a List of tokens that is the sublist of the arrayList<String>
+	 * The format of where condition is:
+	 * 		WHERE 'attribute' 'relational' 'value'
+	 * This function returns true if string fufills that structure.
+	 * Returns false if not.
+	 */
+	private static boolean checkCondition(List<String> tokens)
+	{
+		//TEST: See ArrayList.
+//		for(int i = 0; i < tokens.size();i++)
+//		{
+//			System.out.println(tokens.get(i));
+//		}
+//		System.out.println(tokens.size());
+		//return true;
+		
+		if(tokens.size() == 4 && tokens.get(0).equals("where") && nameCheck(tokens.get(1)) 
+				&& !relationalOp(tokens.get(2)).isEmpty() 
+				&& (nameCheck(tokens.get(3)) || tokens.get(3).chars().allMatch(Character::isDigit)))
+		{
+			return true;
+		}
+		else
+		{
+			System.out.println("SYNTAX ERROR. Condition is incorrect. "
+					+ " Format is \"WHERE 'attribute' 'relational' 'value'\"");
+			return false;
+		}
+	}
+	
+	/*
+	 * This function accepts a string and returns true if string is an acceptable name.
+	 * Returns false if not.
+	 */
 	private static boolean nameCheck(String name)
 	{
+		//String must not start with the digit or a character that is not a letter except for _, @, and #.
 		if(Character.isDigit(name.charAt(0)) || (!Character.isLetter(name.charAt(0)) 
 				&& !(name.charAt(0) == '_' || name.charAt(0) == '@' || name.charAt(0) == '#')))
 		{
 			return false;
 		}
 		
+		//String must not contain a period.
 		for(int i = 0; i < name.length(); i++)
 		{	
 			if(!Character.isLetterOrDigit(name.charAt(i)) && name.charAt(i) == '.')
@@ -508,28 +866,165 @@ public class DavisBase {
 		return true;
 	}
 	
+	/*
+	 * This function accepts a string and returns the argument if argument is a data type.
+	 * Returns empty if not
+	 */
+	private static String dataType(String type)
+	{
+		switch(type)
+		{
+			case "int":
+			case "tinyint":
+			case "smallint":
+			case "bigint":
+			case "real":
+			case "double":
+			case "datetime":
+			case "date":
+			case "text":
+				return type;
+			default:
+				return "";	
+		}
+	}
+	
+	/*
+	 * This function accepts a string and returns the argument if argument is a relational operation.
+	 * Returns empty if not
+	 */
 	private static String relationalOp(String r)
 	{
 		switch(r)
 		{
 			case "=":
-				return r;
 			case ">":
-				return r;
 			case ">=":
-				return r;
 			case "<":
-				return r;
 			case "<=":
-				return r;
 			case "!=":
-				return r;
 			case "true":
-				return r;
 			case "false":
 				return r;
 			default:
 				return "";
 		}
 	}
+	
+	
+	/*
+	 * This function accepts a string input and parses the string into an ArrayList of strings, command.
+	 * This function will separate any relational operation (except for true/false), commas, and parenthesis
+	 * of any strings that contain those characters.
+	 * Function will return command.
+	 */
+	private static ArrayList<String> cleanCommand(String input)
+	{
+		//Separate the string into strings slit by white-space
+		ArrayList<String> temp = new ArrayList<String>(Arrays.asList(input.split(" ")));
+		//This is the return arrayList
+		ArrayList<String> command = new ArrayList<String>();
+		
+		//Parse each string in the temp arrayList
+		for(int i = 0; i < temp.size(); i++)
+		{
+			//Stores the stored characters
+			String str = "";
+			
+			//Parse each character of the itertive string.
+			for(int j = 0; j < temp.get(i).length(); j++)
+			{
+				//Stores the current and next character
+				String inp = "";
+				String inp2 = "";
+				inp += temp.get(i).charAt(j);
+				
+				//If character is a relational op, store the relational into the command
+				if(!relationalOp(inp).isEmpty())
+				{
+					//If characters are stored into the string, add the string first.
+					if(!str.isEmpty())
+					{
+						command.add(str);
+						str = "";
+					}
+					
+					//If the relational is two characters, store both characters else store one character
+					if(j+1 < temp.get(i).length())
+					{
+						inp2 = inp;
+						inp2 += temp.get(i).charAt(j+1);
+						
+						if(!relationalOp(inp2).isEmpty())//Relational is two characters
+						{
+							command.add(inp2);
+							j++;//Move pointer since two characters are stored in one iteration
+						}
+						else//Relational is one character
+						{
+							command.add(inp);
+						}
+					}
+					else//Relational is one character
+					{
+						command.add(inp);
+					}
+				}
+				else if(temp.get(i).charAt(j) == ',')//Character is comma
+				{
+					//If characters are stored into the string, add the string first.
+					if(!str.isEmpty())
+					{
+						command.add(str);
+						str = "";
+					}
+					
+					command.add(",");
+				}
+				else if(temp.get(i).charAt(j) == '(')
+				{
+					//If characters are stored into the string, add the string first.
+					if(!str.isEmpty())
+					{
+						command.add(str);
+						str = "";
+					}
+					
+					command.add("(");
+				}
+				else if(temp.get(i).charAt(j) == ')')
+				{
+					//If characters are stored into the string, add the string first.
+					if(!str.isEmpty())
+					{
+						command.add(str);
+						str = "";
+					}
+					
+					command.add(")");
+				}
+				else//Add the character into the string
+				{
+					str += temp.get(i).charAt(j);
+				}
+				
+			}
+			
+			//At the end of the outer loop, if characters are stored into the string, add the string to command.
+			if(!str.isEmpty())
+			{
+				command.add(str);
+				str = "";
+			}
+		}
+		
+		//TEST: See command
+//		for(int i = 0; i < command.size();i++)
+//		{
+//			System.out.println(command.get(i));
+//		}
+		
+		return command;
+	}
+	
 }
