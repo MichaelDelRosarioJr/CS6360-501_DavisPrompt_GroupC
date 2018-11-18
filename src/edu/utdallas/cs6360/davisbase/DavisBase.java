@@ -1,5 +1,4 @@
 package edu.utdallas.cs6360.davisbase;
-
 import java.util.Scanner;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -649,6 +648,8 @@ public class DavisBase {
 	 */
 	private static boolean checkCreateTable(String createTableString)
 	{
+		//First column statement checks to if if the first column is the create primary
+		boolean firstColumn = true;
 		ArrayList<String> tokens = cleanCommand(createTableString);
 		/*
 		 * state determines the structure of the statement
@@ -671,33 +672,62 @@ public class DavisBase {
 		for(int itr = 1; itr < tokens.size(); itr++)
 		{
 			//TEST: see iteration, string, and state.
-			System.out.println(itr + ": " + tokens.get(itr) + "; state: " + state);
+			//System.out.println(itr + ": " + tokens.get(itr) + "; state: " + state);
 			
 			switch(state)
 			{
 				case 'B':
-					if(itr == 1 && !(tokens.get(itr).equals("table"))) { state = '0'; }
-					else if(itr == 2 && !nameCheck(tokens.get(itr))) { state = '0'; }
-					else if(itr == 3 && tokens.get(itr).equals("(")) { state = 'C'; }
+					if(itr == 1 && !(tokens.get(itr).equals("table")))
+						state = '0';
+					else if(itr == 2 && !nameCheck(tokens.get(itr)))
+						state = '0';
+					else if(itr == 3 && tokens.get(itr).equals("("))
+						state = 'C';
 					break;
 				case 'C':
-					if(nameCheck(tokens.get(itr))) { state = 'D'; }
-					else { state = '0'; }
+					if(firstColumn && (tokens.get(itr).equals("row_id") || tokens.get(itr).equals("rowid")))
+						state = 'D';
+					else if(!firstColumn && nameCheck(tokens.get(itr)))
+						state = 'D';
+					else
+						state = '0';
 					break;
 				case 'D':
-					if(!dataType(tokens.get(itr)).isEmpty()) { state = 'N'; }
-					else { state = '0'; }
+					if(firstColumn && dataType(tokens.get(itr)).equals("int"))
+						state = 'N';
+					else if(!firstColumn && !dataType(tokens.get(itr)).isEmpty())
+						state = 'N';
+					else
+						state = '0';
 					break;
 				case 'N':
-					if(tokens.get(itr).equals("not") && notState == 0) { notState++; }
-					else if(tokens.get(itr).equals("null") && notState == 1) { notState++; }
-					else if(tokens.get(itr).equals("null")) { state = '0'; }
+					if(firstColumn)
+					{
+						if(tokens.get(itr).equals("primary") && tokens.get(itr+1).equals("key"))
+						{
+							firstColumn = false;
+							itr++;
+						}
+						else
+						{
+							state ='0';
+						}
+					}
+					else if(tokens.get(itr).equals("not") && notState == 0)
+						notState++;
+					else if(tokens.get(itr).equals("null") && notState == 1)
+						notState++;
+					else if(tokens.get(itr).equals("null"))
+						state = '0';
 					else if(tokens.get(itr).equals(","))
 					{
 						state = 'C';
 						notState = 0; //Reset not null state.
 					}
-					else if(tokens.get(itr).equals(")")) { state = 'E'; }
+					else if(tokens.get(itr).equals(")"))
+						state = 'E';
+					
+					
 					break;
 				default:
 					System.out.println("SYNTAX ERROR. Create Table statement is not structure properly. "
