@@ -65,6 +65,17 @@ class FileHandler {
         return createTableFile(userDataDir + "/" + tablename);
     }
 
+    /**
+     * Self explanatory function name
+     * @param tablename
+     * @return boolen
+     */
+    static boolean doesTableExist(String tablename){
+        String tableFilename = userDataDir + "/" + tablename + ".tbl";
+        File f = new File(tableFilename);
+        return f.exists();
+    }
+
     private static boolean createTableFile(String tablename) {
         String tableFilename = tablename + ".tbl";
         try {
