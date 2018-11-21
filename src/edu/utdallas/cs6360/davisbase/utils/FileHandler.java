@@ -63,7 +63,7 @@ public class FileHandler {
 	 * A static method to return a table file name given it's name
 	 * @return
 	 */
-	static String getTableFileName(String tableName, DatabaseType type) {
+	public static String getTableFileName(String tableName, DatabaseType type) {
 		if(type == DatabaseType.USER) {
 			return Config.USER_DATA_DIRECTORY + "/" + tableName + ".tbl";
 		} else {
