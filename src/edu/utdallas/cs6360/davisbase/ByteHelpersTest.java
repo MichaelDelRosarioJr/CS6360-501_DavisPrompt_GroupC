@@ -14,8 +14,8 @@ class ByteHelpersTest {
 	private byte[] longTestVal = {(byte)0x7F, (byte)0xFF, (byte)0xFF, (byte)0xFF,
 						  (byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFD};
 	private byte[] floatTestVal = {(byte)0x40, (byte)0x49, (byte)0x0F, (byte)0xCF};
-	private byte[] doubleTestVal = {(byte)0x40, (byte)0x09, (byte)0x21, (byte)0xF9,
-							(byte)0xF0, (byte)0x1B, (byte)0x86, (byte)0x6E};
+	private byte[] doubleTestVal = {(byte)0x40, (byte)0x09, (byte)0x21, (byte)0xFB,
+									(byte)0x54, (byte)0x44, (byte)0x2D, (byte)0x18};
 	
 	
 	@Test
@@ -51,7 +51,6 @@ class ByteHelpersTest {
 	
 	@Test
 	void doubleToBytes() {
-		double val = 3.14159;
-		assertArrayEquals(ByteHelpers.doubleToBytes(val), doubleTestVal);
+		assertArrayEquals(ByteHelpers.doubleToBytes(Math.PI), doubleTestVal);
 	}
 }
