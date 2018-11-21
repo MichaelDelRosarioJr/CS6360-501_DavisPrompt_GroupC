@@ -1,19 +1,19 @@
 package edu.utdallas.cs6360.davisbase;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.RandomAccessFile;
-
-import static edu.utdallas.cs6360.davisbase.DavisBase.pageSize;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 class FileHandler {
-    private static String dataDir = "data";
-
-    private static String catalogDir = dataDir + "/" +  "catalog";
-    private static String userDataDir = dataDir + "/" +  "user_data";
-
-    private static String davisbaseTablesTable = catalogDir + "/" + "davisbase_tables";
-    private static String davisbaseColumnsTable = catalogDir + "/" + "davisbase_columns";
-
+    private static final Logger LOGGER = Logger.getLogger(FileHandler.class.getName());
+	
+	/**
+	 * Private constructor to override the implicit constructor
+	 */
+	private FileHandler() { throw new IllegalStateException("FileHandler Utility Class"); }
+    
     /**
      * This static method creates the DavisBase data storage container
      * and then initializes two .tbl files to implement the two
@@ -22,15 +22,15 @@ class FileHandler {
     static void initializeDataStore() {
 
         /** Create data directory at the current OS location to hold */
-        createDatabaseDirectory(dataDir);
-        createDatabaseDirectory(catalogDir);
-        createDatabaseDirectory(userDataDir);
+        createDatabaseDirectory(Config.DATA_DIRECTORY);
+        createDatabaseDirectory(Config.CATALOG_DIRECTORY);
+        createDatabaseDirectory(Config.USER_DATA_DIRECTORY);
 
         /** Create davisbase_tables system catalog */
-        createTableFile(davisbaseTablesTable);
+        createTableFile(getTableFileName(Config.CATALOG_TABLE, DatabaseType.CATALOG));
 
         /** Create davisbase_columns system catalog */
-        createTableFile(davisbaseColumnsTable);
+        createTableFile(getTableFileName(Config.CATALOG_COLUMN, DatabaseType.CATALOG));
 
     }
 
@@ -51,49 +51,50 @@ class FileHandler {
                 }
             }
         } catch (SecurityException se) {
-            System.out.println("Unable to create " + name + " container directory");
-            System.out.println(se);
+	        LOGGER.log(Level.SEVERE, "Unable to create " + name + " container directory");
+	        LOGGER.log(Level.SEVERE, se.toString());
         }
     }
-
-
+	
+	/**
+	 * A static method to return a table file name given it's name
+	 * @return
+	 */
+	static String getTableFileName(String tableName, DatabaseType type) {
+		if(type == DatabaseType.USER) {
+			return Config.USER_DATA_DIRECTORY + "/" + tableName + ".tbl";
+		} else {
+			return Config.CATALOG_DIRECTORY + "/" + tableName + ".tbl";
+		}
+	}
+	
     /**
-     * @param tablename table name
-     * @return boolean return false if table exists and returns true if table created
+     * A static method that creates a file from a table name and checks
+     * if it exists and is not a directory
+     * @param fileName the full path for the table
+     * @return boolean if the file exists and is not a directory
      */
-    static boolean createTable(String tablename){
-        return createTableFile(userDataDir + "/" + tablename);
+    static boolean doesTableExist(String fileName) {
+        File f = new File(fileName);
+        return f.exists() && !f.isDirectory();
     }
-
-    /**
-     * Self explanatory function name
-     * @param tablename
-     * @return boolen
-     */
-    static boolean doesTableExist(String tablename){
-        String tableFilename = userDataDir + "/" + tablename + ".tbl";
-        File f = new File(tableFilename);
-        return f.exists();
+    
+    static boolean createTable(String tableName) {
+    	return createTableFile(getTableFileName(tableName, DatabaseType.USER));
     }
-
-    private static boolean createTableFile(String tablename) {
-        String tableFilename = tablename + ".tbl";
-        try {
-            File f = new File(tableFilename);
-            if (!f.exists()) {
-                RandomAccessFile file = new RandomAccessFile(tableFilename, "rw");
-                file.setLength(pageSize);
-                file.close();
-                return true;
-            }else{
-                return false;
+    
+    static boolean createTableFile(String fileName) {
+        if (!doesTableExist(fileName)) {
+            try (RandomAccessFile file = new RandomAccessFile(fileName, "rw")) {
+	            file.setLength(Config.PAGE_SIZE);
+            } catch (IOException e1) {
+	            LOGGER.log(Level.SEVERE, "Unable to create the " + fileName + " file");
+	            LOGGER.log(Level.SEVERE, e1.toString());
             }
-
-        } catch (Exception e) {
-            System.out.println("Unable to create the " + tablename + " file");
-            System.out.println(e);
+            return true;
+        }else{
+            return false;
         }
-        return false;
     }
 
 }

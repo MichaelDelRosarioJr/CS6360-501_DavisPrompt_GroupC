@@ -5,9 +5,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static edu.utdallas.cs6360.davisbase.FileHandler.createTable;
-import static edu.utdallas.cs6360.davisbase.FileHandler.initializeDataStore;
-
 /**
  * @author Chris Irwin Davis
  * @version 1.0
@@ -19,15 +16,8 @@ import static edu.utdallas.cs6360.davisbase.FileHandler.initializeDataStore;
  */
 
 public class DavisBase {
-
-    public static final String COPYRIGHT = "Â©2016 Chris Irwin Davis";
-    public static final String VERSION = "v1.0b(example)";
     private static boolean isExit = false;
-    /*
-     * Page size for all files is 512 bytes by default.
-     * You may choose to make it user modifiable
-     */
-    static long pageSize = 512;
+    
 
     /**
      * The Scanner class is used to collect user commands from the prompt
@@ -36,7 +26,7 @@ public class DavisBase {
      * Each time the semicolon (;) delimiter is entered, the userCommand
      * String is re-populated.
      */
-    private static Scanner scanner = new Scanner(System.in, "UTF-8").useDelimiter(";");
+    private static Scanner scanner = new Scanner(System.in, Config.CHARACTER_SET).useDelimiter(";");
 
     /**
      * **********************************************************************
@@ -48,7 +38,7 @@ public class DavisBase {
         splashScreen();
 
         /* Create data directory if it doesn't exits*/
-        initializeDataStore();
+        FileHandler.initializeDataStore();
 
         /* Variable to collect user input from the prompt */
         String userCommand = "";
@@ -135,11 +125,11 @@ public class DavisBase {
      * return the DavisBase version
      */
     private static String getVersion() {
-        return VERSION;
+        return Config.VERSION;
     }
 
     private static String getCopyright() {
-        return COPYRIGHT;
+        return Config.COPYRIGHT;
     }
 
     private static void displayVersion() {
@@ -296,7 +286,7 @@ public class DavisBase {
             ArrayList<String> tokens = cleanCommand(createTableString);
             /** example create table table_name .....
              * so the token at second position is table name */
-            if (!createTable(tokens.get(2))) {
+            if (!FileHandler.createTable(tokens.get(2))) {
                 System.out.println("OOPS! Table " + tokens.get(2) + " already exists");
             } else {
                 System.out.println("SUCCESS! Creating table");
