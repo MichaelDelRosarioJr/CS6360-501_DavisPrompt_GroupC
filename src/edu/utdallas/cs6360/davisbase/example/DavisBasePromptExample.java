@@ -86,11 +86,11 @@ public class DavisBasePromptExample {
 	 * @return String A String object, which is the String s appended to itself num times.
 	 */
 	public static String line(String s,int num) {
-		String a = "";
+		StringBuilder a = new StringBuilder();
 		for(int i=0;i<num;i++) {
-			a += s;
+			a.append(s);
 		}
-		return a;
+		return a.toString();
 	}
 	
 	public static void printCmd(String s) {

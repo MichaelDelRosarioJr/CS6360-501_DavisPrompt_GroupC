@@ -1,4 +1,4 @@
-package edu.utdallas.cs6360.davisbase;
+package edu.utdallas.cs6360.davisbase.utils;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -7,7 +7,7 @@ import java.nio.ByteOrder;
  * A class of static helper functions for various byte operations
  * @author Charles Krol
  */
-final class ByteHelpers {
+public final class ByteHelpers {
 	
 	/**
 	 * Private constructor so the class cannot be instantiated
@@ -20,7 +20,7 @@ final class ByteHelpers {
 	 * @param b a 2's complement byte
 	 * @return the unsigned value
 	 */
-	static int byteToUnSignedInt(byte b) {
+	public static int byteToUnSignedInt(byte b) {
 		return b & 0xFF;
 	}
 	
@@ -29,7 +29,7 @@ final class ByteHelpers {
 	 * @param value a short value
 	 * @return an array of bytes
 	 */
-	static byte[] shortToBytes(short value) {
+	public static byte[] shortToBytes(short value) {
 		return ByteBuffer.allocate(Short.BYTES).order(ByteOrder.BIG_ENDIAN).putShort(value).array();
 	}
 	
@@ -38,7 +38,7 @@ final class ByteHelpers {
 	 * @param value an integer value
 	 * @return an array of bytes
 	 */
-	static byte[] intToBytes(int value) {
+	public static byte[] intToBytes(int value) {
 		return ByteBuffer.allocate(Integer.BYTES).order(ByteOrder.BIG_ENDIAN).putInt(value).array();
 	}
 	
@@ -47,7 +47,7 @@ final class ByteHelpers {
 	 * @param value a long value
 	 * @return an array of bytes
 	 */
-	static byte[] longToBytes(long value) {
+	public static byte[] longToBytes(long value) {
 		return ByteBuffer.allocate(Long.BYTES).order(ByteOrder.BIG_ENDIAN).putLong(value).array();
 	}
 	
@@ -56,7 +56,7 @@ final class ByteHelpers {
 	 * @param value a double value
 	 * @return an array of bytes
 	 */
-	static byte[] doubleToBytes(double value) {
+	public static byte[] doubleToBytes(double value) {
 		return ByteBuffer.allocate(Double.BYTES).putDouble(value).array();
 	}
 	
@@ -65,7 +65,7 @@ final class ByteHelpers {
 	 * @param value a float value
 	 * @return an array of bytes
 	 */
-	static byte [] floatToByte (float value)  {
+	public static byte [] floatToByte (float value)  {
 		return ByteBuffer.allocate(Float.BYTES).putFloat(value).array();
 	}
 }

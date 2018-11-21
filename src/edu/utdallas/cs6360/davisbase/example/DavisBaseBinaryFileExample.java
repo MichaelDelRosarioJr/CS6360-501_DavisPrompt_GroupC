@@ -3,6 +3,8 @@ package edu.utdallas.cs6360.davisbase.example;
 import java.io.RandomAccessFile;
 import java.io.File;
 import java.io.FileReader;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Scanner;
 import java.util.SortedMap;
 import java.lang.Math.*;
@@ -16,10 +18,16 @@ import static java.lang.System.out;
  */
 public class DavisBaseBinaryFileExample {
 
-	/* This static variable controls page size. */
-	static int pageSizePower = 9;
-	/* This strategy insures that the page size is always a power of 2. */
-	static int pageSize = (int)Math.pow(2, pageSizePower);
+	/**
+	 *  This static variable controls page size.
+	 */
+	private static int pageSizePower = 9;
+	
+	
+	/**
+	 * This strategy insures that the page size is always a power of 2.
+	 */
+	private static int pageSize = (int)Math.pow(2, pageSizePower);
 
 
 	public static void main(String[] args) {
@@ -109,8 +117,8 @@ public class DavisBaseBinaryFileExample {
 			dataDir.mkdir();
 			String[] oldTableFiles;
 			oldTableFiles = dataDir.list();
-			for (int i=0; i<oldTableFiles.length; i++) {
-				File anOldFile = new File(dataDir, oldTableFiles[i]); 
+			for (String oldTableFile : Objects.requireNonNull(oldTableFiles)) {
+				File anOldFile = new File(dataDir, oldTableFile);
 				anOldFile.delete();
 			}
 		}

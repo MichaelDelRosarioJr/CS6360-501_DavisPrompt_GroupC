@@ -1,5 +1,6 @@
-package edu.utdallas.cs6360.davisbase;
+package edu.utdallas.cs6360.davisbase.utils;
 
+import edu.utdallas.cs6360.davisbase.utils.ByteHelpers;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

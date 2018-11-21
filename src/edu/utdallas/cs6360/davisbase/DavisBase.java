@@ -1,5 +1,7 @@
 package edu.utdallas.cs6360.davisbase;
 
+import edu.utdallas.cs6360.davisbase.utils.FileHandler;
+
 import java.util.Scanner;
 import java.util.ArrayList;
 import java.util.Arrays;

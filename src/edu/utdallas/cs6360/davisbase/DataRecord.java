@@ -6,7 +6,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import static edu.utdallas.cs6360.davisbase.ByteHelpers.*;
+import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.*;
 
 /**
  * A Class to represent a data record from the Database<br>

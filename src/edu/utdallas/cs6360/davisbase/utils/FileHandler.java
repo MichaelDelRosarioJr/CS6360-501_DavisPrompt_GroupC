@@ -1,4 +1,7 @@
-package edu.utdallas.cs6360.davisbase;
+package edu.utdallas.cs6360.davisbase.utils;
+
+import edu.utdallas.cs6360.davisbase.Config;
+import edu.utdallas.cs6360.davisbase.DatabaseType;
 
 import java.io.File;
 import java.io.IOException;
@@ -6,7 +9,7 @@ import java.io.RandomAccessFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-class FileHandler {
+public class FileHandler {
     private static final Logger LOGGER = Logger.getLogger(FileHandler.class.getName());
 	
 	/**
@@ -74,16 +77,16 @@ class FileHandler {
      * @param fileName the full path for the table
      * @return boolean if the file exists and is not a directory
      */
-    static boolean doesTableExist(String fileName) {
+    public static boolean doesTableExist(String fileName) {
         File f = new File(fileName);
         return f.exists() && !f.isDirectory();
     }
     
-    static boolean createTable(String tableName) {
+    public static boolean createTable(String tableName) {
     	return createTableFile(getTableFileName(tableName, DatabaseType.USER));
     }
     
-    static boolean createTableFile(String fileName) {
+    public static boolean createTableFile(String fileName) {
         if (!doesTableExist(fileName)) {
             try (RandomAccessFile file = new RandomAccessFile(fileName, "rw")) {
 	            file.setLength(Config.PAGE_SIZE);
