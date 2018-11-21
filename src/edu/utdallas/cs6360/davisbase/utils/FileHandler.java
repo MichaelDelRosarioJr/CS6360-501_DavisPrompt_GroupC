@@ -22,7 +22,7 @@ public class FileHandler {
      * and then initializes two .tbl files to implement the two
      * system tables, davisbase_tables and davisbase_columns
      */
-    static void initializeDataStore() {
+    public static void initializeDataStore() {
 
         /** Create data directory at the current OS location to hold */
         createDatabaseDirectory(Config.DATA_DIRECTORY);
