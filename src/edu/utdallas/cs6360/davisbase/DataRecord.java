@@ -1,12 +1,24 @@
 package edu.utdallas.cs6360.davisbase;
 
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import static edu.utdallas.cs6360.davisbase.ByteHelpers.*;
+
+/**
+ * A Class to represent a data record from the Database<br>
+ *
+ * A DataRecord is created by supplying an array of bytes and an array of
+ * Strings to the constructor. The Bytes are the codes representing the column
+ * data types and the Strings are the columns values.<br>
+ *
+ * The getBytes() method can be used to export the DataRecord to a disk and a constructor
+ * is provides that can recreate the DataRecord from it's byte representation.
+ * @author Charles Krol
+ */
 public class DataRecord {
 	
 	static final byte NULL1_TYPE_CODE = (byte)0x00;
@@ -22,6 +34,7 @@ public class DataRecord {
 	static final byte DATETIME_TYPE_CODE = (byte)0x0A;
 	static final byte DATE_TYPE_CODE = (byte)0x0B;
 	static final byte TEXT_TYPE_CODE = (byte)0x0C;
+	private static final int NULL_VALUE = 0;
 	
 	private byte[] columnDataType;
 	private String[] columnData;
@@ -77,12 +90,12 @@ public class DataRecord {
 		this.columnData = new String[numColumns];
 		
 		// Get column data types
-		for(int i = 0; i < numColumns; i++) {
+		for(int i = NULL_VALUE; i < numColumns; i++) {
 			this.columnDataType[i] = dataBuffer.get();
 		}
 		
 		// Pointer for column arrays
-		int columnPointer = 0;
+		int columnPointer = NULL_VALUE;
 		while (dataBuffer.hasRemaining() && columnPointer < this.columnDataType.length) {
 			switch (this.columnDataType[columnPointer]) {
 				case NULL1_TYPE_CODE:
@@ -129,7 +142,7 @@ public class DataRecord {
 					int lengthOfText = this.columnDataType[columnPointer] - TEXT_TYPE_CODE;
 					this.columnDataType[columnPointer] = TEXT_TYPE_CODE;
 					byte[] textColData = new byte[lengthOfText];
-					dataBuffer.get(textColData, 0, lengthOfText);
+					dataBuffer.get(textColData, NULL_VALUE, lengthOfText);
 					this.columnData[columnPointer++] = new String(textColData, StandardCharsets.US_ASCII);
 			}
 		}
@@ -215,7 +228,29 @@ public class DataRecord {
 		Byte[] out;
 		ArrayList<Byte> output = new ArrayList<>();
 			output.add((byte) this.columnData.length);
-		for (int i = 0; i < this.columnDataType.length; i++) {
+		
+			
+		output.addAll(getColumnCodes());
+		// Get column data bytes and add to the end of the ArrayList
+		output.addAll(getColumnDataBytes());
+		
+		out = new Byte[output.size()];
+		out = output.toArray(out);
+		byte[] byteOut = new byte[output.size()];
+		for (int i = NULL_VALUE; i < output.size(); i++) {
+			byteOut[i] = out[i];
+		}
+		return byteOut;
+	}
+	
+	/**
+	 * A private helper method to help reduce the complexity of the getBytes() class method
+	 * @return an ArrayList with the column data type codes
+	 */
+	private ArrayList<Byte> getColumnCodes() {
+		ArrayList<Byte> output = new ArrayList<>();
+		
+		for (int i = NULL_VALUE; i < this.columnDataType.length; i++) {
 			if (this.columnDataType[i] < TEXT_TYPE_CODE) {
 				output.add(this.columnDataType[i]);
 			} else {
@@ -223,25 +258,34 @@ public class DataRecord {
 				output.add((byte) (this.columnDataType[i] +(byte)textLength));
 			}
 		}
-			
-		for (int i = 0; i < this.columnData.length; i++) {
+		return output;
+	}
+	
+	/**
+	 * A private helper method to help reduce the complexity of the getBytes() class method
+	 * @return an ArrayList with the data bytes of our column values
+	 */
+	private ArrayList<Byte> getColumnDataBytes() {
+		ArrayList<Byte> output = new ArrayList<>();
+		
+		for (int i = NULL_VALUE; i < this.columnData.length; i++) {
 			switch (this.columnDataType[i]) {
 				case NULL1_TYPE_CODE:
-					output.add((byte) 0);
+					output.add((byte) NULL_VALUE);
 					break;
 				case NULL2_TYPE_CODE:
-					for (int j = 0; j < Short.BYTES; j++) {
-						output.add((byte) 0);
+					for (int j = NULL_VALUE; j < Short.BYTES; j++) {
+						output.add((byte) NULL_VALUE);
 					}
 					break;
 				case NULL4_TYPE_CODE:
-					for (int j = 0; j < Integer.BYTES; j++) {
-						output.add((byte) 0);
+					for (int j = NULL_VALUE; j < Integer.BYTES; j++) {
+						output.add((byte) NULL_VALUE);
 					}
 					break;
 				case NULL8_TYPE_CODE:
-					for (int j = 0; j < Long.BYTES; j++) {
-						output.add((byte) 0);
+					for (int j = NULL_VALUE; j < Long.BYTES; j++) {
+						output.add((byte) NULL_VALUE);
 					}
 					break;
 				case TINY_INT_TYPE_CODE:
@@ -284,7 +328,7 @@ public class DataRecord {
 					break;
 				case DATETIME_TYPE_CODE:
 					byte[] dateTimeLongVal
-						= longToBytes(Long.parseUnsignedLong(this.columnData[i]));
+							= longToBytes(Long.parseUnsignedLong(this.columnData[i]));
 					for (byte b: dateTimeLongVal) {
 						output.add(b);
 					}
@@ -303,13 +347,7 @@ public class DataRecord {
 					}
 			}
 		}
-		out = new Byte[output.size()];
-		out = output.toArray(out);
-		byte[] byteOut = new byte[output.size()];
-		for (int i = 0; i < output.size(); i++) {
-			byteOut[i] = out[i];
-		}
-		return byteOut;
+		return output;
 	}
 	
 	/**
@@ -337,61 +375,6 @@ public class DataRecord {
 		dateCal.setTimeInMillis(ms);
 		return dateFormat.format(dateCal.getTime());
 		
-	}
-	
-	/**
-	 * A static method that accpets a 2's completment
-	 * signed byte and returns the unsigned value
-	 * @param b a 2's complement byte
-	 * @return the unsigned value
-	 */
-	private static int byteToUnSignedInt(byte b) {
-		return b & 0xFF;
-	}
-	
-	/**
-	 * Converts a short to an array of bytes
-	 * @param value a short value
-	 * @return an array of bytes
-	 */
-	private static byte[] shortToBytes(short value) {
-		return ByteBuffer.allocate(Short.BYTES).order(ByteOrder.BIG_ENDIAN).putShort(value).array();
-	}
-	
-	/**
-	 * Converts an integer to an array of bytes
-	 * @param value an integer value
-	 * @return an array of bytes
-	 */
-	private static byte[] intToBytes(int value) {
-		return ByteBuffer.allocate(Integer.BYTES).order(ByteOrder.BIG_ENDIAN).putInt(value).array();
-	}
-	
-	/**
-	 * Converts a long to an array of bytes
-	 * @param value a long value
-	 * @return an array of bytes
-	 */
-	private static byte[] longToBytes(long value) {
-		return ByteBuffer.allocate(Long.BYTES).order(ByteOrder.BIG_ENDIAN).putLong(value).array();
-	}
-	
-	/**
-	 * Converts a double to an array of bytes
-	 * @param value a double value
-	 * @return an array of bytes
-	 */
-	private static byte[] doubleToBytes(double value) {
-		return ByteBuffer.allocate(Double.BYTES).putDouble(value).array();
-	}
-	
-	/**
-	 * Converts a float to an array of bytes
-	 * @param value a float value
-	 * @return an array of bytes
-	 */
-	private static byte [] floatToByte (float value)  {
-		return ByteBuffer.allocate(Float.BYTES).putFloat(value).array();
 	}
 	
 	/**
@@ -459,7 +442,7 @@ public class DataRecord {
 		
 		// If they column types don't match return false
 		byte[] otherDataTyes = other.getColumnDataTypes();
-		for (int i = 0; i < this.getNumColumns(); i++) {
+		for (int i = NULL_VALUE; i < this.getNumColumns(); i++) {
 			if (this.columnDataType[i] != otherDataTyes[i]) {
 				return false;
 			}
@@ -468,7 +451,7 @@ public class DataRecord {
 		// Since same number of columns and types match check
 		// If column contents match, else return false
 		String[] otherColumnData = other.getColumnData();
-		for(int i = 0; i < this.getNumColumns(); i++) {
+		for(int i = NULL_VALUE; i < this.getNumColumns(); i++) {
 			if (!this.columnData[i].equals(otherColumnData[i])) {
 				return false;
 			}
