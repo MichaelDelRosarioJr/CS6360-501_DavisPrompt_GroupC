@@ -22,6 +22,12 @@ public final class Config {
 	 * You may choose to make it user modifiable
 	 */
 	public static final int PAGE_SIZE = 512;
+	public static final byte PAGE_HEADER_SIZE = 8;
+	public static final byte TABLE_INTERIOR_CELL_HEADER_SIZE = 8;
+	public static final short MAX_TEXT_FIELD_LENGTH = 127;
+	public static final byte DATARECORD_KEY_SIZE = Integer.BYTES;
+	
+	
 	public static final String COPYRIGHT = "Â©2016 Chris Irwin Davis";
 	public static final String VERSION = "v1.0b(example)";
 	
