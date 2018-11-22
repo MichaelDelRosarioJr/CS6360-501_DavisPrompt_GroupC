@@ -20,20 +20,7 @@ import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.*;
  * @author Charles Krol
  */
 public class DataRecord {
-	
-	static final byte NULL1_TYPE_CODE = (byte)0x00;
-	static final byte NULL2_TYPE_CODE = (byte)0x01;
-	static final byte NULL4_TYPE_CODE = (byte)0x02;
-	static final byte NULL8_TYPE_CODE = (byte)0x03;
-	static final byte TINY_INT_TYPE_CODE = (byte)0x04;
-	static final byte SHORT_TYPE_CODE = (byte)0x05;
-	static final byte INT_TYPE_CODE = (byte)0x06;
-	static final byte LONG_TYPE_CODE = (byte)0x07;
-	static final byte FLOAT_TYPE_CODE = (byte)0x08;
-	static final byte DOUBLE_TYPE_CODE = (byte)0x09;
-	static final byte DATETIME_TYPE_CODE = (byte)0x0A;
-	static final byte DATE_TYPE_CODE = (byte)0x0B;
-	static final byte TEXT_TYPE_CODE = (byte)0x0C;
+
 	private static final int NULL_VALUE = 0;
 	
 	private byte[] columnDataType;
@@ -97,7 +84,7 @@ public class DataRecord {
 		// Pointer for column arrays
 		int columnPointer = NULL_VALUE;
 		while (dataBuffer.hasRemaining() && columnPointer < this.columnDataType.length) {
-			switch (this.columnDataType[columnPointer]) {
+			switch (DataType.getEnum(this.columnDataType[columnPointer])) {
 				case NULL1_TYPE_CODE:
 					this.columnData[columnPointer++] = "";
 					dataBuffer.get();
@@ -138,12 +125,18 @@ public class DataRecord {
 				case DATE_TYPE_CODE:
 					this.columnData[columnPointer++] = Long.toUnsignedString(dataBuffer.getLong());
 					break;
-				default:
-					int lengthOfText = this.columnDataType[columnPointer] - TEXT_TYPE_CODE;
-					this.columnDataType[columnPointer] = TEXT_TYPE_CODE;
+				case TEXT_TYPE_CODE:
+					// Get the size of the text field from the type code byte representation
+					int lengthOfText = DataType.getDataTypeSize(this.columnDataType[columnPointer]);
+					// Store the correct type code
+					this.columnDataType[columnPointer] = DataType.TEXT_TYPE_CODE.getTypeCode();
+					// Use the lengthOfText local variable to collect the text values
 					byte[] textColData = new byte[lengthOfText];
 					dataBuffer.get(textColData, NULL_VALUE, lengthOfText);
 					this.columnData[columnPointer++] = new String(textColData, StandardCharsets.US_ASCII);
+					break;
+				default:
+					throw new IllegalStateException("Invalid Data Type Byte Code");
 			}
 		}
 	}
@@ -165,22 +158,22 @@ public class DataRecord {
 	 * @param data the String containing the correct data
 	 */
 	void setColumnData(int colId, String data) {
-		byte colType = this.columnDataType[colId];
+		DataType colType = DataType.getEnum(this.columnDataType[colId]);
 		
-		if (colType == NULL1_TYPE_CODE) {
-			this.columnDataType[colId] = TINY_INT_TYPE_CODE;
+		if (colType == DataType.NULL1_TYPE_CODE) {
+			this.columnDataType[colId] = DataType.TINY_INT_TYPE_CODE.getTypeCode();
 		}
 		
-		if (colType == NULL2_TYPE_CODE) {
-			this.columnDataType[colId] = SHORT_TYPE_CODE;
+		if (colType == DataType.NULL2_TYPE_CODE) {
+			this.columnDataType[colId] = DataType.SHORT_TYPE_CODE.getTypeCode();
 		}
 		
-		if (colType == NULL4_TYPE_CODE) {
-			this.columnDataType[colId] = INT_TYPE_CODE;
+		if (colType == DataType.NULL4_TYPE_CODE) {
+			this.columnDataType[colId] = DataType.INT_TYPE_CODE.getTypeCode();
 		}
 		
-		if (colType == NULL8_TYPE_CODE) {
-			this.columnDataType[colId] = LONG_TYPE_CODE;
+		if (colType == DataType.NULL8_TYPE_CODE) {
+			this.columnDataType[colId] = DataType.LONG_TYPE_CODE.getTypeCode();
 		}
 		
 		this.columnData[colId] = data;
@@ -195,25 +188,25 @@ public class DataRecord {
 	 * @param colId the id of the column to set to null
 	 */
 	void setColumnNull(int colId) {
-		byte colType = this.columnDataType[colId];
+		DataType colType = DataType.getEnum(this.columnDataType[colId]);
 		
-		if (colType == TINY_INT_TYPE_CODE) {
-			this.columnDataType[colId] = NULL1_TYPE_CODE;
+		if (colType == DataType.TINY_INT_TYPE_CODE) {
+			this.columnDataType[colId] = DataType.NULL1_TYPE_CODE.getTypeCode();
 			this.columnData[colId] = "";
 		}
 		
-		if (colType == SHORT_TYPE_CODE) {
-			this.columnDataType[colId] = NULL2_TYPE_CODE;
+		if (colType == DataType.SHORT_TYPE_CODE) {
+			this.columnDataType[colId] = DataType.NULL2_TYPE_CODE.getTypeCode();
 			this.columnData[colId] = "";
 		}
 		
-		if (colType == INT_TYPE_CODE) {
-			this.columnDataType[colId] = NULL4_TYPE_CODE;
+		if (colType == DataType.INT_TYPE_CODE) {
+			this.columnDataType[colId] = DataType.NULL4_TYPE_CODE.getTypeCode();
 			this.columnData[colId] = "";
 		}
 		
-		if (colType == LONG_TYPE_CODE) {
-			this.columnDataType[colId] = NULL8_TYPE_CODE;
+		if (colType == DataType.LONG_TYPE_CODE) {
+			this.columnDataType[colId] = DataType.NULL8_TYPE_CODE.getTypeCode();
 			this.columnData[colId] = "";
 		}
 		
@@ -224,23 +217,21 @@ public class DataRecord {
 	 * DataRecord formatted into the specified format
 	 * @return a byte array containing the correctly formatted data
 	 */
-	byte[] getBytes() {
-		Byte[] out;
+	ArrayList<Byte> getBytes() {
 		ArrayList<Byte> output = new ArrayList<>();
-			output.add((byte) this.columnData.length);
+		output.add((byte) this.columnData.length);
 		
 			
 		output.addAll(getColumnCodes());
 		// Get column data bytes and add to the end of the ArrayList
 		output.addAll(getColumnDataBytes());
-		
-		out = new Byte[output.size()];
-		out = output.toArray(out);
-		byte[] byteOut = new byte[output.size()];
-		for (int i = NULL_VALUE; i < output.size(); i++) {
-			byteOut[i] = out[i];
-		}
-		return byteOut;
+
+		return output;
+	}
+	
+	short getSize() {
+		ArrayList<Byte> dataRecordBytes = getBytes();
+		return (short)dataRecordBytes.size();
 	}
 	
 	/**
@@ -251,7 +242,7 @@ public class DataRecord {
 		ArrayList<Byte> output = new ArrayList<>();
 		
 		for (int i = NULL_VALUE; i < this.columnDataType.length; i++) {
-			if (this.columnDataType[i] < TEXT_TYPE_CODE) {
+			if (this.columnDataType[i] < DataType.TEXT_TYPE_CODE.getTypeCode()) {
 				output.add(this.columnDataType[i]);
 			} else {
 				int textLength = this.columnData[i].getBytes(StandardCharsets.US_ASCII).length;
@@ -269,24 +260,18 @@ public class DataRecord {
 		ArrayList<Byte> output = new ArrayList<>();
 		
 		for (int i = NULL_VALUE; i < this.columnData.length; i++) {
-			switch (this.columnDataType[i]) {
+			switch (DataType.getEnum(this.columnDataType[i])) {
 				case NULL1_TYPE_CODE:
 					output.add((byte) NULL_VALUE);
 					break;
 				case NULL2_TYPE_CODE:
-					for (int j = NULL_VALUE; j < Short.BYTES; j++) {
-						output.add((byte) NULL_VALUE);
-					}
+					for (int j = NULL_VALUE; j < Short.BYTES; j++) { output.add((byte) NULL_VALUE); }
 					break;
 				case NULL4_TYPE_CODE:
-					for (int j = NULL_VALUE; j < Integer.BYTES; j++) {
-						output.add((byte) NULL_VALUE);
-					}
+					for (int j = NULL_VALUE; j < Integer.BYTES; j++) { output.add((byte) NULL_VALUE); }
 					break;
 				case NULL8_TYPE_CODE:
-					for (int j = NULL_VALUE; j < Long.BYTES; j++) {
-						output.add((byte) NULL_VALUE);
-					}
+					for (int j = NULL_VALUE; j < Long.BYTES; j++) { output.add((byte) NULL_VALUE); }
 					break;
 				case TINY_INT_TYPE_CODE:
 					output.add(Byte.parseByte(this.columnData[i]));
@@ -340,11 +325,15 @@ public class DataRecord {
 						output.add(b);
 					}
 					break;
-				default:
+				case TEXT_TYPE_CODE:
 					byte[] textVal = this.columnData[i].getBytes(StandardCharsets.US_ASCII);
 					for (byte b: textVal) {
 						output.add(b);
 					}
+					break;
+				default:
+					throw new IllegalStateException("Illegal Data Type");
+					
 			}
 		}
 		return output;

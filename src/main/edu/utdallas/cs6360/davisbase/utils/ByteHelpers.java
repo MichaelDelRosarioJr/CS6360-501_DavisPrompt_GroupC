@@ -2,6 +2,7 @@ package edu.utdallas.cs6360.davisbase.utils;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.List;
 
 /**
  * A class of static helper functions for various byte operations
@@ -67,5 +68,18 @@ public final class ByteHelpers {
 	 */
 	public static byte [] floatToByte (float value)  {
 		return ByteBuffer.allocate(Float.BYTES).putFloat(value).array();
+	}
+	
+	/**
+	 * Takes an ArrayList and returns the primitive byte type
+	 * @param bytesList an ArrayList containing bytes
+	 * @return an array of bytes from the ArrayList
+	 */
+	public static byte[] byteArrayListToArray(List<Byte> bytesList) {
+		byte[] bytes = new byte[bytesList.size()];
+		for(int i = 0; i < bytesList.size(); i++) {
+			bytes[i] = bytesList.get(i);
+		}
+		return bytes;
 	}
 }
