@@ -18,16 +18,40 @@ import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.shortToBytes;
 public class TableInteriorPage extends Page{
 	private int nextPagePointer;
 	
+	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *        Constructors
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
+	
+	/**
+	 * Default constructor
+	 */
 	public TableInteriorPage() {
 		super();
 		this.nextPagePointer = 0;
 	}
 	
+	/**
+	 * Constructor that initializes an interior page without a right pointer
+	 * @param pageType the type of page, root or regular
+	 * @param pageNumber the page number as it appears in the file
+	 */
 	public TableInteriorPage(PageType pageType, int pageNumber) {
 		super(pageType, pageNumber);
 		this.nextPagePointer = -1;
 	}
 	
+	/**
+	 * Constructor that initializes an interior page with a right pointer
+	 * @param pageType the type of page, root or regular
+	 * @param pageNumber the page number as it appears in the file
+	 * @param nextPagePointer a page number acting as a pointer to the right subtree in the file
+	 */
 	public TableInteriorPage(PageType pageType, int pageNumber, int nextPagePointer) {
 		super(pageType, pageNumber);
 		this.nextPagePointer = nextPagePointer;
@@ -50,6 +74,15 @@ public class TableInteriorPage extends Page{
 		this.nextPagePointer = headerBuffer.getInt();
 	}
 	
+	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *       Overridden Methods
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
 	/**
 	 * A method to return the byte array containing
 	 * DataRecord formatted into the specified format
@@ -88,6 +121,12 @@ public class TableInteriorPage extends Page{
 		return output;
 	}
 	
+	/**
+	 * Method that creates a new interior cell when given a page of bytes and an offset to load from
+	 * @param data a page of bytes
+	 * @param offset the offset to load data from
+	 * @return a TableInteriorCell containing the content from the file
+	 */
 	@Override
 	public DataCell getDataCellAtOffsetInFile(byte[] data, short offset) {
 		int beginningOfFirstCell = Config.PAGE_SIZE - 1 - offset;
@@ -141,11 +180,19 @@ public class TableInteriorPage extends Page{
 		return getNumOfCells();
 	}
 	
+	/**
+	 * TODO: printPage
+	 */
 	@Override
 	public void printPage() {
 	
 	}
 	
+	/**
+	 * Determines if two TableInteriorPages are equal by comparing their page numbers, pointers, and data cells
+	 * @param o an object to compare
+	 * @return true if they are the same data cell, false otherwise
+	 */
 	@Override
 	public boolean equals(Object o) {
 		if (o == this) { return true; }
@@ -169,6 +216,10 @@ public class TableInteriorPage extends Page{
 				this.getDataCells().equals(that.getDataCells());
 	}
 	
+	/**
+	 * hashCode Method
+	 * @return a hashCode representing a TableInteriorDataCell
+	 */
 	@Override
 	public int hashCode() {
 		DataCell[] array = new DataCell[getDataCells().size()];

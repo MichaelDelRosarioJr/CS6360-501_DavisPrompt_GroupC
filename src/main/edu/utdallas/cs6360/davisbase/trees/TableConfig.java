@@ -29,7 +29,8 @@ public class TableConfig {
 	private int treeOrder;
 	private int leafPageDegree;
 	
-	private boolean hasTextFields;
+	// True if the table has text columns false otherwise
+	private boolean hasTextColumns;
 	
 	
 	/**
@@ -41,7 +42,7 @@ public class TableConfig {
 		this.treeOrder = -1;
 		this.leafPageDegree = -1;
 		this.numOfColumns = -1;
-		this.hasTextFields = false;
+		this.hasTextColumns = false;
 	}
 	
 	/**
@@ -54,7 +55,7 @@ public class TableConfig {
 		this.dataRecordSizeNoText = calculateMinDataRecordSize(columnTypes);
 		this.treeOrder = calculateTreeOrder();
 		this.leafPageDegree = calculateLeafPageDegree();
-		this.hasTextFields = doesColHaveTextFields(columnTypes);
+		this.hasTextColumns = doesColHaveTextFields(columnTypes);
 		logTreeConfig();
 	}
 	
@@ -68,17 +69,8 @@ public class TableConfig {
 		this.dataRecordSizeNoText = calculateMinDataRecordSize(columnTypeCodes);
 		this.treeOrder = calculateTreeOrder();
 		this.leafPageDegree = calculateLeafPageDegree();
-		this.hasTextFields = doesColHaveTextFields(columnTypeCodes);
+		this.hasTextColumns = doesColHaveTextFields(columnTypeCodes);
 		logTreeConfig();
-	}
-	
-	
-	/**
-	 * Returns the page size from the Config class
-	 * @return the page size in bytes
-	 */
-	public int pageSize() {
-		return Config.PAGE_SIZE;
 	}
 	
 	/**
@@ -109,12 +101,12 @@ public class TableConfig {
 	}
 	
 	/**
-	 * Getter for property 'hasTextFields'.
+	 * Getter for property 'hasTextColumns'.
 	 *
-	 * @return Value for property 'hasTextFields'.
+	 * @return Value for property 'hasTextColumns'.
 	 */
-	public boolean isHasTextFields() {
-		return hasTextFields;
+	public boolean isHasTextColumns() {
+		return hasTextColumns;
 	}
 	
 	/**
@@ -127,16 +119,82 @@ public class TableConfig {
 	}
 	
 	/**
-	 * Setter for property 'hasTextFields'.
+	 * Setter for property 'hasTextColumns'.
 	 *
-	 * @param hasTextFields Value to set for property 'hasTextFields'.
+	 * @param hasTextColumns Value to set for property 'hasTextColumns'.
 	 */
-	public void setHasTextFields(boolean hasTextFields) {
-		this.hasTextFields = hasTextFields;
+	public void setHasTextColumns(boolean hasTextColumns) {
+		this.hasTextColumns = hasTextColumns;
+	}
+	
+	
+	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *     Calculating Methods
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
+	
+	/**
+	 * Calculates the Tree Order which is also the internal page degree<br>
+	 * pageHeaderSize = 8 bytes<br>
+	 * offsetSize  = short = 2 bytes<br>
+	 * tableInteriorCellSize = (4 byte Key, 4 byte pointer) =  8 bytes<br>
+	 * <br>
+	 * PageSize   = headerSize + offsets + dataCells<br>
+	 *            = interiorPageHeaderSize + (n*offsetSize) + (n*interiorCellSize)<br>
+	 *            = 8 + 2n + 8n<br>
+	 *        10n = PageSize - 8<br>
+	 * Tree Order = (PageSize - 8)/10<br>
+	 * Tree Order = (pageSize - pageHeaderSize) / (offsetSize + interiorCellSize)<br>
+	 * @return the Tree order or internal page degree which is the maximum number of cells that
+	 * can fit on an interior page
+	 */
+	private int calculateTreeOrder() {
+		return (Config.PAGE_SIZE - Config.PAGE_HEADER_SIZE) / (Short.BYTES + Config.TABLE_INTERIOR_CELL_SIZE);
 	}
 	
 	/**
-	 * Calculates the size of the column data cells when passed an array of byte type codes
+	 * Calculates the leafPageDegree or the maximum number of records that can be stored in a leaf cell <br>
+	 *
+	 * tableLeafCellSize = (2 byte payload size, 4 byte Key, payload)<br>
+	 * payloadSize = (1 byte #ofColumns, n byte type codes, column data)<br>
+	 * <br>
+	 * PageSize = headerSize + offsets + dataCells<br>
+	 *          = headerSize + offsetSize*degree + dataCells*degree<br>
+	 *          = headerSize + degree(offsetSize + dataCells)<br>
+	 *          = headerSize + degree[offsetSize + leafCellHeader + (1byte for NumCol) + numberOfColForTypeCodes +
+	 *          dataSize]<br>
+	 *
+	 *  degree =                                       (PageSize - headerSize) /<br>
+	 *                  [offsetSize + leafCellHeader + (1byte for NumCol) + numberOfColForTypeCodes +dataSize]<br>
+	 *
+	 *  degree =                                            (PageSize - 8)/<br>
+	 *                                               (2 + 6 + 1 + numCol + dataSize)<br>
+	 * @return the degree of a leaf node or the maximum number of cells that can be stored a leave node based on the
+	 * column configuration
+	 * 	 * can fit on an interior page
+	 */
+	private int calculateLeafPageDegree() {
+		return (Config.PAGE_SIZE - Config.PAGE_HEADER_SIZE) /
+				(Short.BYTES + Config.TABLE_LEAF_CELL_HEADER_SIZE + Byte.BYTES + this.numOfColumns +
+						this.dataMaxRecordSize);
+	}
+	/**
+	 * Used to ensure that this configuration will produce valid trees by making sure no interior/leaf page has a
+	 * degree < 2
+	 */
+	private void checkTreeOrder() {
+		if (treeOrder < Config.MIN_ORDER_OF_TREE || leafPageDegree < Config.MIN_ORDER_OF_TREE) {
+			throw new IllegalStateException("Error this tree order < 2 or it's leaf nodes have degree < 2");
+		}
+	}
+	/**
+	 * Calculates the size of the column data cells when passed an array of byte type codes<br>
+	 *     For Text columns it returns the largest possible record size since Text columns make it variable in length
 	 * @param columnTypeCodes an array of column type codes
 	 * @return the size in bytes of any instantiated data records with this column configuration
 	 */
@@ -148,6 +206,12 @@ public class TableConfig {
 		return size;
 	}
 	
+	/**
+	 * Calculates the size of the column data cells when passed an array of byte type codes<br>
+	 *     For Text columns it does nothing, this is used when determining the size of inserting a new record
+	 * @param columnTypeCodes an array of column type codes
+	 * @return the size in bytes of any instantiated data records with this column configuration
+	 */
 	private int calculateMinDataRecordSize(byte[] columnTypeCodes) {
 		int size = 0;
 		for (byte b : columnTypeCodes) {
@@ -159,8 +223,9 @@ public class TableConfig {
 	}
 	
 	/**
-	 * Calculates the size of the column data cells when passed an array of DataType enum values
-	 * @param columnTypes an array of column data types represented by DataType enum values
+	 * Calculates the size of the column data cells when passed an array of DataType enum values<br>
+	 *     For Text columns it returns the largest possible record size since Text columns make it variable in length
+	 * @param columnTypes an array of column type codes
 	 * @return the size in bytes of any instantiated data records with this column configuration
 	 */
 	private int calculateMaxDataRecordSize(DataType[] columnTypes) {
@@ -171,6 +236,12 @@ public class TableConfig {
 		return size;
 	}
 	
+	/**
+	 * Calculates the size of the column data cells when passed an array of DataType enum values<br>
+	 *     For Text columns it does nothing, this is used when determining the size of inserting a new record
+	 * @param columnTypes an array of column type codes
+	 * @return the size in bytes of any instantiated data records with this column configuration
+	 */
 	private int calculateMinDataRecordSize(DataType[] columnTypes) {
 		int size = 0;
 		for (DataType d : columnTypes) {
@@ -179,62 +250,6 @@ public class TableConfig {
 			}
 		}
 		return size;
-	}
-	
-	/**
-	 * Calculates the Tree Order which is also the internal page degree
-	 * pageHeaderSize = 8 Bytes
-	 * offsetSize  = short = 2 Bytes
-	 * tableInteriorCellSize = (4 Byte Key, 4 Byte Pointer) =  8 Bytes
-	 *
-	 * PageSize   = headerSize + offsets + dataCells
-	 *            = interiorPageHeaderSize + (n*offsetSize) + (n*interiorCellSize)
-	 *            = 8 + 2n + 8n
-	 *        10n = PageSize - 8
-	 * Tree Order = (PageSize - 8)/10
-	 * Tree Order = (pageSize - pageHeaderSize) / (offsetSize + interiorCellSize)
-	 * @return the Tree order or internal page degree which is the maximum number of cells that
-	 * can fit on an interior page
-	 */
-	private int calculateTreeOrder() {
-		return (Config.PAGE_SIZE - Config.PAGE_HEADER_SIZE) / (Short.BYTES + Config.TABLE_INTERIOR_CELL_SIZE);
-	}
-	
-	
-	/**
-	 * Calculates the leafPageDegree or the maximum number of records that can be stored in a leaf cell <br>
-	 *
-	 * tableLeafCellSize = (2 Byte Payload Size, 4 Byte Key, Payload)<br>
-	 * payloadSize = (1 byte #ofColumns, n byte type codes, column data)<br>
-	 *
-	 * PageSize = headerSize + offsets + dataCells<br>
-	 *          = headerSize + offsetSize*degree + dataCells*degree<br>
-	 *          = headerSize + degree(offsetSize + dataCells)<br>
-	 *          = headerSize + degree[offsetSize + leafCellHeader + (1Byte for NumCol) + numberOfColForTypeCodes +
-	 *          dataSize]<br>
-	 *
-	 *  degree =                                       (PageSize - headerSize) /
-	 *                  [offsetSize + leafCellHeader + (1Byte for NumCol) + numberOfColForTypeCodes +dataSize]
-	 *
-	 *  degree =                                            (PageSize - 8)/
-	 *                                               (2 + 6 + 1 + numCol + dataSize)
-	 *
-	 */
-	private int calculateLeafPageDegree() {
-		return (Config.PAGE_SIZE - Config.PAGE_HEADER_SIZE) /
-				(Short.BYTES + Config.TABLE_LEAF_CELL_HEADER_SIZE + Byte.BYTES + this.numOfColumns +
-						this.dataMaxRecordSize);
-			
-	}
-	
-	/**
-	 * Used to ensure that this configuration will produce valid trees by making sure no interior/leaf page has a
-	 * degree < 2
-	 */
-	private void checkTreeOrder() {
-		if (treeOrder < Config.MIN_ORDER_OF_TREE || leafPageDegree < Config.MIN_ORDER_OF_TREE) {
-			throw new IllegalStateException("Error this tree order < 2 or it's leaf nodes have degree < 2");
-		}
 	}
 	
 	/**
@@ -275,6 +290,15 @@ public class TableConfig {
 		LOGGER.log(Level.INFO, "Data Record Size: {0}", this.dataMaxRecordSize);
 	}
 	
+	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *        Static Methods
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
 	public static boolean doesColHaveTextFields(byte[] colTypeCodes){
 		for (byte b : colTypeCodes) {
 			if (DataType.getEnum(b) == DataType.TEXT_TYPE_CODE) {

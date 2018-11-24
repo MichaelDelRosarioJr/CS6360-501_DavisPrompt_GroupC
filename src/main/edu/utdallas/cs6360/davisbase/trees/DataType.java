@@ -36,6 +36,10 @@ public enum DataType {
 		this.dataSize = size;
 	}
 	
+	/**
+	 * Returns the type code
+	 * @return type code for the DataType
+	 */
 	public byte getTypeCode() { return this.typeCode; }
 	
 	/**
@@ -69,6 +73,11 @@ public enum DataType {
 		throw new IllegalArgumentException();
 	}
 	
+	/**
+	 * Return the largest size of a DataType, used for determining how many cells can fit in a leaf page
+	 * @param typeCode the type code representing the data type
+	 * @return the largest amount of space the data type will take up, for Text it is 0x7C
+	 */
 	public static byte getMaxSize(byte typeCode) {
 		for(DataType value: values()) {
 			if(value.getTypeCode() == typeCode) { return value.dataSize; }

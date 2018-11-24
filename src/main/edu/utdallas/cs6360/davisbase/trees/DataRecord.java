@@ -7,6 +7,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.*;
+import static edu.utdallas.cs6360.davisbase.Config.*;
 
 /**
  * A Class to represent a data record from the Database<br>
@@ -23,12 +24,20 @@ import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.*;
  * @author Mithil Vijay
  */
 public class DataRecord {
-
-	private static final int NULL_VALUE = 0;
+	
 	
 	private byte[] columnDataType;
 	private String[] columnData;
 	
+	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *        Constructors
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
 	/**
 	 * Default Constructor that sets the columnDataTye and columnData arrays to null
 	 */
@@ -80,12 +89,12 @@ public class DataRecord {
 		this.columnData = new String[numColumns];
 		
 		// Get column data types
-		for(int i = NULL_VALUE; i < numColumns; i++) {
+		for(int i = ZERO; i < numColumns; i++) {
 			this.columnDataType[i] = dataBuffer.get();
 		}
 		
 		// Pointer for column arrays
-		int columnPointer = NULL_VALUE;
+		int columnPointer = ZERO;
 		while (dataBuffer.hasRemaining() && columnPointer < this.columnDataType.length) {
 			switch (DataType.getEnum(this.columnDataType[columnPointer])) {
 				case NULL1_TYPE_CODE:
@@ -135,7 +144,7 @@ public class DataRecord {
 					this.columnDataType[columnPointer] = DataType.TEXT_TYPE_CODE.getTypeCode();
 					// Use the lengthOfText local variable to collect the text values
 					byte[] textColData = new byte[lengthOfText];
-					dataBuffer.get(textColData, NULL_VALUE, lengthOfText);
+					dataBuffer.get(textColData, ZERO, lengthOfText);
 					this.columnData[columnPointer++] = new String(textColData, StandardCharsets.US_ASCII);
 					break;
 				default:
@@ -144,6 +153,15 @@ public class DataRecord {
 		}
 	}
 	
+	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *      Getters and Setters
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
 	/**
 	 * A getter method for a column's data type
 	 * @param colId the id of the column type to retrieve
@@ -248,7 +266,7 @@ public class DataRecord {
 	private ArrayList<Byte> getColumnCodes() {
 		ArrayList<Byte> output = new ArrayList<>();
 		
-		for (int i = NULL_VALUE; i < this.columnDataType.length; i++) {
+		for (int i = ZERO; i < this.columnDataType.length; i++) {
 			if (this.columnDataType[i] < DataType.TEXT_TYPE_CODE.getTypeCode()) {
 				output.add(this.columnDataType[i]);
 			} else {
@@ -266,19 +284,19 @@ public class DataRecord {
 	private ArrayList<Byte> getColumnDataBytes() {
 		ArrayList<Byte> output = new ArrayList<>();
 		
-		for (int i = NULL_VALUE; i < this.columnData.length; i++) {
+		for (int i = ZERO; i < this.columnData.length; i++) {
 			switch (DataType.getEnum(this.columnDataType[i])) {
 				case NULL1_TYPE_CODE:
-					output.add((byte) NULL_VALUE);
+					output.add((byte) ZERO);
 					break;
 				case NULL2_TYPE_CODE:
-					for (int j = NULL_VALUE; j < Short.BYTES; j++) { output.add((byte) NULL_VALUE); }
+					for (int j = ZERO; j < Short.BYTES; j++) { output.add((byte) ZERO); }
 					break;
 				case NULL4_TYPE_CODE:
-					for (int j = NULL_VALUE; j < Integer.BYTES; j++) { output.add((byte) NULL_VALUE); }
+					for (int j = ZERO; j < Integer.BYTES; j++) { output.add((byte) ZERO); }
 					break;
 				case NULL8_TYPE_CODE:
-					for (int j = NULL_VALUE; j < Long.BYTES; j++) { output.add((byte) NULL_VALUE); }
+					for (int j = ZERO; j < Long.BYTES; j++) { output.add((byte) ZERO); }
 					break;
 				case TINY_INT_TYPE_CODE:
 					output.add(Byte.parseByte(this.columnData[i]));
@@ -397,6 +415,15 @@ public class DataRecord {
 	private String[] getColumnData() { return this.columnData; }
 	
 	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *     Overridden Methods
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
+	/**
 	 * Used to determine if the given object matches this
 	 * DataRecord object. <br>
 	 *
@@ -438,7 +465,7 @@ public class DataRecord {
 		
 		// If they column types don't match return false
 		byte[] otherDataTyes = other.getColumnDataTypes();
-		for (int i = NULL_VALUE; i < this.getNumColumns(); i++) {
+		for (int i = ZERO; i < this.getNumColumns(); i++) {
 			if (this.columnDataType[i] != otherDataTyes[i]) {
 				return false;
 			}
@@ -447,7 +474,7 @@ public class DataRecord {
 		// Since same number of columns and types match check
 		// If column contents match, else return false
 		String[] otherColumnData = other.getColumnData();
-		for(int i = NULL_VALUE; i < this.getNumColumns(); i++) {
+		for(int i = ZERO; i < this.getNumColumns(); i++) {
 			if (!this.columnData[i].equals(otherColumnData[i])) {
 				return false;
 			}

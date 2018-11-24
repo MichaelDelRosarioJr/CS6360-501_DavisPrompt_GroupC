@@ -7,6 +7,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Charles Krol
+ * @author Matthew Villarreal
+ * @author Michael Del Rosario
+ * @author Mithil Vijay
  */
 class ByteHelpersTest {
 	

@@ -7,6 +7,9 @@ import java.util.List;
 /**
  * A class of static helper functions for various byte operations
  * @author Charles Krol
+ * @author Matthew Villarreal
+ * @author Michael Del Rosario
+ * @author Mithil Vijay
  */
 public final class ByteHelpers {
 	

@@ -8,7 +8,10 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * @author Chris Irwin Davis
+ * @author Charles Krol
+ * @author Matthew Villarreal
+ * @author Michael Del Rosario
+ * @author Mithil Vijay
  * @version 1.0
  * <b>
  * <p>This is an example of how to create an interactive prompt</p>

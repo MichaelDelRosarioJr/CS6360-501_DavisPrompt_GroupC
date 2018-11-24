@@ -22,6 +22,15 @@ public class TableLeafCell extends DataCell {
 	private DataRecord payload;
 	
 	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *         Constructors
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
+	/**
 	 * Default constructor for completeness
 	 */
 	TableLeafCell() {
@@ -73,6 +82,15 @@ public class TableLeafCell extends DataCell {
 	}
 	
 	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *           Getters
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
+	/**
 	 * Returns the byte representation of a TableLeafCell to write to the file
 	 * @return an ArrayList containing the  byte representation of the TableLeafCell
 	 */
@@ -98,10 +116,24 @@ public class TableLeafCell extends DataCell {
 		return output;
 	}
 	
+	/**
+	 * Returns the side of the TableLeafCell<br>
+	 *     2bytes + 4bytes + payloadSize
+	 * @return the size in bytes the TableInteriorCell takes up in memory
+	 */
 	public int size() {
 		return Config.TABLE_LEAF_CELL_HEADER_SIZE + this.payload.size();
 	}
 	
+	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *      Overridden Methods
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
 	/**
 	 * Used mainly for JUnit test classes
 	 * @param o an object to compare
@@ -129,6 +161,4 @@ public class TableLeafCell extends DataCell {
 	public int hashCode() {
 		return Objects.hash(payload, getRowId());
 	}
-	
-	
 }

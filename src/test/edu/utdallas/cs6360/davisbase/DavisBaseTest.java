@@ -8,6 +8,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * JUnit Test class for Davisbase
+ * @author Charles Krol
+ * @author Matthew Villarreal
+ * @author Michael Del Rosario
+ * @author Mithil Vijay
  */
 class DavisBaseTest {
 	

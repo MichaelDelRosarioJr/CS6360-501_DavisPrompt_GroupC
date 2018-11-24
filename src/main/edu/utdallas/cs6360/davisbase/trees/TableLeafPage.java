@@ -2,7 +2,6 @@ package edu.utdallas.cs6360.davisbase.trees;
 
 import edu.utdallas.cs6360.davisbase.Config;
 
-import javax.xml.crypto.Data;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.logging.Logger;
@@ -23,24 +22,41 @@ public class TableLeafPage extends Page{
 	
 	private int nextPagePointer;
 	
-	
+	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *         Constructors
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
+	/**
+	 * Default constructor
+	 */
 	public TableLeafPage() {
 		super();
 		this.nextPagePointer = 0;
 	}
 	
+	/**
+	 * Constructor that creates a new TableLeafPage from a pageType, pageNumber, and right subtree pointer
+	 * @param pageType the type of page, root or normal
+	 * @param pageNumber the page number as it will appear in the file
+	 * @param nextPagePointer the page number acting as a pointer into the right subtree
+	 */
 	TableLeafPage(PageType pageType, int pageNumber, int nextPagePointer) {
 		super(pageType, pageNumber);
 		if(pageType == PageType.TABLE_LEAF_ROOT && nextPagePointer > ZERO) { throw new
 				IllegalArgumentException("Table root leaf page with non-null next page pointer"); }
 		this.nextPagePointer = nextPagePointer;
-		
 	}
 	
 	/**
 	 * A constructor to recreate a TableLeafPage object from it's byte representation stored in the file.
 	 *
 	 * @param data an array of bytes representing an entire page from a file
+	 * @param pageNumber the pageNumber as it appears in the file
 	 */
 	public TableLeafPage(byte[] data, int pageNumber) {
 		super(data, pageNumber);
@@ -55,8 +71,17 @@ public class TableLeafPage extends Page{
 	}
 	
 	/**
-	 *
-	 * @param tableLeafCell
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *           Methods
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
+	/**
+	 * Adds a new TableLeafCell to the TableLeafPage and then sorts the cell offsets by rowId
+	 * @param tableLeafCell the new cell to add to the page
 	 */
 	void addDataCell(TableLeafCell tableLeafCell) {
 		addDataCell(tableLeafCell);
@@ -64,9 +89,9 @@ public class TableLeafPage extends Page{
 	}
 	
 	/**
-	 *
-	 * @param rowId
-	 * @return
+	 * Returns a TableLeafCell when given a rowId
+	 * @param rowId the key of the cell to retrieve
+	 * @return the requested TableLeafCell
 	 */
 	TableLeafCell getDataCell(int rowId) {
 		for(DataCell c : getDataCells()) {
@@ -77,6 +102,41 @@ public class TableLeafPage extends Page{
 		throw new IllegalArgumentException("DataCell not found");
 	}
 	
+	/**
+	 * Returns the offset within a page where a contiguous block of free space closest in size to a new TableLeafCell
+	 * inserted into a Table with text column values and is variable length as a result.
+	 * @param entrySize the size of the new variable length entry
+	 * @param map a HashMap<offset, #freeBytes> containing the pointers to and sizes of freespace
+	 * @return an offset where the new record can be inserted
+	 */
+	private int getClosestSizeOffset(int entrySize, HashMap<Integer, Integer> map) {
+		HashMap<Integer, Integer> difference = new HashMap<>();
+		
+		for(Map.Entry<Integer, Integer> entry : map.entrySet()) {
+			difference.put(entry.getKey(), (entry.getValue() - entrySize));
+		}
+		
+		int min = Collections.min(difference.values());
+		for(Map.Entry<Integer, Integer> entry: map.entrySet()) {
+			if(entry.getValue() == min) {
+				return entry.getKey();
+			}
+		}
+		throw new IllegalStateException("Error can't find min");
+	}
+	
+	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *       Overridden Methods
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
+	/**
+	 * TODO: printPage
+	 */
 	@Override
 	public void printPage() {
 	
@@ -109,7 +169,7 @@ public class TableLeafPage extends Page{
 		
 		int entrySize;
 		
-		if(!config.isHasTextFields()) {
+		if(!config.isHasTextColumns()) {
 			int lastCellPosition = 0;
 			int currentCellPosition = 0;
 			entrySize = config.getDataMaxRecordSize();
@@ -165,22 +225,13 @@ public class TableLeafPage extends Page{
 		
 	}
 	
-	private int getClosestSizeOffset(int entrySize, HashMap<Integer, Integer> map) {
-		HashMap<Integer, Integer> difference = new HashMap<>();
-		
-		for(Map.Entry<Integer, Integer> entry : map.entrySet()) {
-			difference.put(entry.getKey(), (entry.getValue() - entrySize));
-		}
-		
-		int min = Collections.min(difference.values());
-		for(Map.Entry<Integer, Integer> entry: map.entrySet()) {
-			if(entry.getValue() == min) {
-				return entry.getKey();
-			}
-		}
-		throw new IllegalStateException("Error can't find min");
-	}
-	
+	/**
+	 * Given a page of bytes and an offset from the end of the page this method will return a TableLeafCell
+	 * object from that location within the page
+	 * @param data an array of bytes that make up a page from a file
+	 * @param offset an offset from the end of the file where the desired record starts
+	 * @return a TableLeafCell containing a DataRecord
+	 */
 	@Override
 	public DataCell getDataCellAtOffsetInFile(byte[] data, short offset) {
 		int beginningOfFirstCell = Config.PAGE_SIZE - 1 - offset;
@@ -239,6 +290,11 @@ public class TableLeafPage extends Page{
 		return output;
 	}
 	
+	/**
+	 * Determines if two TableLeafPage objects are equivalent
+	 * @param o an object to compare
+	 * @return true if equivalent, false otherwise
+	 */
 	@Override
 	public boolean equals(Object o) {
 		if (o == this) { return true; }
@@ -262,6 +318,10 @@ public class TableLeafPage extends Page{
 				this.getDataCells().equals(that.getDataCells());
 	}
 	
+	/**
+	 * hashCode
+	 * @return a hashCode for a TableLeafPage object
+	 */
 	@Override
 	public int hashCode() {
 		DataCell[] array = new DataCell[getDataCells().size()];

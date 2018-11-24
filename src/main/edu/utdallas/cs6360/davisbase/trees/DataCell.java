@@ -18,6 +18,16 @@ public abstract class DataCell implements Comparable<DataCell> {
 	private short pageOffset;
 	
 	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *         Constructors
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
+	
+	/**
 	 * Default constructor for completeness
 	 */
 	DataCell() {
@@ -65,10 +75,38 @@ public abstract class DataCell implements Comparable<DataCell> {
 		this.rowId = ByteBuffer.wrap(data).getInt();
 	}
 	
+	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *      Abstract Methods
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
+	
+	/**
+	 * Abstract method to get the number of bytes of an instance to store on disk
+	 * @return the number of bytes the cell will take up on disk
+	 */
 	public abstract int size();
 	
+	/**
+	 * Abstract method to get the byte representation of a data cell to store on disk
+	 * @return the bytes of the data cell to store on the disk
+	 */
 	public abstract List<Byte> getBytes();
 	
+	
+	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *      Setters and Getters
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
 	/**
 	 * Getter for property 'pageOffset'.
 	 *
@@ -98,8 +136,17 @@ public abstract class DataCell implements Comparable<DataCell> {
 	
 	
 	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *      Overridden Methods
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
+	/**
 	 * A compareTo method which compares DataCells by rowIds
-	 * @param dataCell
+	 * @param dataCell a DataCell to compare to this one
 	 * @return >0 if this > that, 0 if same, 0< if this < that
 	 */
 	public int compareTo(DataCell dataCell) {

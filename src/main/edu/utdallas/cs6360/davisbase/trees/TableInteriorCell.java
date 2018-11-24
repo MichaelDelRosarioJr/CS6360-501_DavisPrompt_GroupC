@@ -22,6 +22,15 @@ public class TableInteriorCell extends DataCell implements Comparable<DataCell> 
 	private int leftChildPointer;
 	
 	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *         Constructors
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
+	/**
 	 * Default constructor for completeness
 	 */
 	TableInteriorCell() {
@@ -55,6 +64,14 @@ public class TableInteriorCell extends DataCell implements Comparable<DataCell> 
 		this.leftChildPointer = headerBuffer.getInt();
 	}
 	
+	/**
+	 * Constructor that initializes a TableInteriorCell from it's byte
+	 * representation in the file<br>
+	 *
+	 * First the rowId is grabbed and sent to the super constrcutor<br>
+	 * Then the leftChildPointer is stored
+	 * @param data the byte representation of a TableInteriorCell stored in a file
+	 */
 	TableInteriorCell(byte[] data) {
 		super(Arrays.copyOfRange(data, START_OF_TABLE_INTERIOR_ROWID, START_OF_TABLE_INTERIOR_ROWID + Integer.BYTES),
 				(short)Page.ZERO);
@@ -62,6 +79,15 @@ public class TableInteriorCell extends DataCell implements Comparable<DataCell> 
 		this.leftChildPointer = headerBuffer.getInt();
 	}
 	
+	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *        Getter Methods
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
 	/**
 	 * Used to get the byte representation of a TableInteriorCell for storing later<br>
 	 *
@@ -81,11 +107,24 @@ public class TableInteriorCell extends DataCell implements Comparable<DataCell> 
 		return output;
 	}
 	
+	/**
+	 * Getter for the size of the interior cell
+	 * @return an integer representing the size of an interior cell
+	 */
 	public int size() {
 		return Config.TABLE_INTERIOR_CELL_SIZE;
 	}
 	
 	
+	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *      Overridden Methods
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
 	/**
 	 * Overridden toEquals class to help with unit tests
 	 * @param o hopefully a TableInteriorCell object to compare

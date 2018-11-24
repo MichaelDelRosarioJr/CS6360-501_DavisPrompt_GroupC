@@ -9,6 +9,12 @@ import java.io.RandomAccessFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * @author Charles Krol
+ * @author Matthew Villarreal
+ * @author Michael Del Rosario
+ * @author Mithil Vijay
+ */
 public class FileHandler {
     private static final Logger LOGGER = Logger.getLogger(FileHandler.class.getName());
 	

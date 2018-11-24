@@ -11,7 +11,10 @@ import static java.lang.System.out;
 
 /**
  *
- * @author Chris Irwin Davis
+ * @author Charles Krol
+ * @author Matthew Villarreal
+ * @author Michael Del Rosario
+ * @author Mithil Vijay
  * @version 1.0
  */
 public class HexDump {

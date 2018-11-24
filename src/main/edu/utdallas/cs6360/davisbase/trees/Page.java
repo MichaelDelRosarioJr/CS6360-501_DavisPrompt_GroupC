@@ -45,6 +45,9 @@ abstract public class Page {
 	
 	private ArrayList<DataCell> dataCells;
 	
+	/**
+	 * Default constructor
+	 */
 	Page() {
 		this.pageType = null;
 		this.pageNumber = -ONE;
