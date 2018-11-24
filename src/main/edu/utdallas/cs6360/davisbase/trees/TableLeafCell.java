@@ -1,13 +1,20 @@
-package edu.utdallas.cs6360.davisbase;
+package edu.utdallas.cs6360.davisbase.trees;
 
+import edu.utdallas.cs6360.davisbase.Config;
+
+import java.nio.ByteBuffer;
 import java.util.*;
 
 import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.intToBytes;
 import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.shortToBytes;
 
 /**
- * Class to represent a TableLeafCell
+ * Class to represent a TableLeafCell with a 6 byte(2 byte length, 4 byte rowId) and
+ * a payload of either variable(if text columns) or constant length(no text columns)
  * @author Charles Krol
+ * @author Matthew Villarreal
+ * @author Michael Del Rosario
+ * @author Mithil Vijay
  */
 public class TableLeafCell extends DataCell {
 	private static final int START_OF_LEAF_CELL_ROW_ID = 2;
@@ -42,19 +49,34 @@ public class TableLeafCell extends DataCell {
 	}
 	
 	/**
+	 * Constructor to reinitialize an existing TableLeafCell from it's byte representation stored a cell of bytes
+	 * @param data the byte representation of a TableLeafCell
+	 * @param offset a short representing the location of the cell within the page
+	 */
+	TableLeafCell(byte[] data, short offset) {
+		super(Arrays.copyOfRange(data, START_OF_LEAF_CELL_ROW_ID, START_OF_LEAF_CELL_ROW_ID + Integer.BYTES),
+				offset);
+		int payLoadSize = ByteBuffer.wrap(data).getShort(Page.ZERO);
+		this.payload = new DataRecord(Arrays.copyOfRange(data, START_OF_LEAF_CELL_PAYLOAD, START_OF_LEAF_CELL_PAYLOAD
+				+ payLoadSize));
+	}
+	
+	/**
 	 * Constructor to reinitialize an existing TableLeafCell from it's byte representation stored in the file
 	 * @param data the byte representation of a TableLeafCell
 	 */
 	TableLeafCell(byte[] data) {
 		super(Arrays.copyOfRange(data, START_OF_LEAF_CELL_ROW_ID, START_OF_LEAF_CELL_ROW_ID + Integer.BYTES));
-		this.payload = new DataRecord(Arrays.copyOfRange(data, START_OF_LEAF_CELL_PAYLOAD, data.length));
+		int payLoadSize = ByteBuffer.wrap(data).getShort(Page.ZERO);
+		this.payload = new DataRecord(Arrays.copyOfRange(data, START_OF_LEAF_CELL_PAYLOAD, START_OF_LEAF_CELL_PAYLOAD
+				+ payLoadSize));
 	}
 	
 	/**
 	 * Returns the byte representation of a TableLeafCell to write to the file
 	 * @return an ArrayList containing the  byte representation of the TableLeafCell
 	 */
-	List<Byte> getBytes() {
+	public List<Byte> getBytes() {
 		ArrayList<Byte> output = new ArrayList<>();
 		
 		// Get payload byte representation
@@ -74,6 +96,10 @@ public class TableLeafCell extends DataCell {
 		output.addAll(payloadBytes);
 		
 		return output;
+	}
+	
+	public int size() {
+		return Config.TABLE_LEAF_CELL_HEADER_SIZE + this.payload.size();
 	}
 	
 	/**
@@ -103,4 +129,6 @@ public class TableLeafCell extends DataCell {
 	public int hashCode() {
 		return Objects.hash(payload, getRowId());
 	}
+	
+	
 }

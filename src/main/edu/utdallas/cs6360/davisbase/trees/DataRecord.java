@@ -1,4 +1,4 @@
-package edu.utdallas.cs6360.davisbase;
+package edu.utdallas.cs6360.davisbase.trees;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -18,6 +18,9 @@ import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.*;
  * The getBytes() method can be used to export the DataRecord to a disk and a constructor
  * is provides that can recreate the DataRecord from it's byte representation.
  * @author Charles Krol
+ * @author Matthew Villarreal
+ * @author Michael Del Rosario
+ * @author Mithil Vijay
  */
 public class DataRecord {
 
@@ -229,7 +232,11 @@ public class DataRecord {
 		return output;
 	}
 	
-	short getSize() {
+	/**
+	 * Method to return the size of the page
+	 * @return the number of data cells stored on the page
+	 */
+	short size() {
 		ArrayList<Byte> dataRecordBytes = getBytes();
 		return (short)dataRecordBytes.size();
 	}

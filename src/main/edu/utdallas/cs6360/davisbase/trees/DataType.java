@@ -1,8 +1,11 @@
-package edu.utdallas.cs6360.davisbase;
+package edu.utdallas.cs6360.davisbase.trees;
 
 /**
  * Enum class to hold information about DataRecord column types
  * @author Charles Krol
+ * @author Matthew Villarreal
+ * @author Michael Del Rosario
+ * @author Mithil Vijay
  */
 public enum DataType {
 	NULL1_TYPE_CODE((byte)0x00, (byte)0x01),
@@ -22,6 +25,12 @@ public enum DataType {
 	private final byte typeCode;
 	private final byte dataSize;
 	
+	/**
+	 * Sets the typeCode and size of the datatype in bytes, for TEXT the size is
+	 * the maximum text length
+	 * @param code a byte representing a data type
+	 * @param size the size of the data type in bytes
+	 */
 	DataType(byte code, byte size) {
 		this.typeCode = code;
 		this.dataSize = size;
@@ -58,5 +67,15 @@ public enum DataType {
 			if(value.getTypeCode() == typeCode) { return value.dataSize; }
 		}
 		throw new IllegalArgumentException();
+	}
+	
+	public static byte getMaxSize(byte typeCode) {
+		for(DataType value: values()) {
+			if(value.getTypeCode() == typeCode) { return value.dataSize; }
+		}
+		if(typeCode > TEXT_TYPE_CODE.getTypeCode()) {
+			return TEXT_TYPE_CODE.dataSize;
+		}
+		throw new IllegalArgumentException("Invaild data type byte code");
 	}
 }

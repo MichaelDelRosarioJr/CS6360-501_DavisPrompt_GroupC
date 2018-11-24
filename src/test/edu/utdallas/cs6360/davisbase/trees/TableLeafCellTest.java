@@ -1,4 +1,4 @@
-package edu.utdallas.cs6360.davisbase;
+package edu.utdallas.cs6360.davisbase.trees;
 
 import edu.utdallas.cs6360.davisbase.utils.ByteHelpers;
 import org.junit.jupiter.api.BeforeEach;
@@ -8,6 +8,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * JUnit test class for TableLeafCell
+ * @author Charles Krol
+ * @author Matthew Villarreal
+ * @author Michael Del Rosario
+ * @author Mithil Vijay
  */
 class TableLeafCellTest {
 	private TableLeafCell testCell;

@@ -1,16 +1,22 @@
-package edu.utdallas.cs6360.davisbase;
+package edu.utdallas.cs6360.davisbase.trees;
 
+import edu.utdallas.cs6360.davisbase.Config;
 import edu.utdallas.cs6360.davisbase.utils.ByteHelpers;
 
 import java.nio.ByteBuffer;
 import java.util.*;
 
 /**
- * Class to represent a Table Interior Cell
+ * Class to represent a Table Interior Cell of 8 bytes in size
+ * (4 byte left-subtree pointer and a 4 byte rowId)
+ *
  * @author Charles Krol
+ * @author Matthew Villarreal
+ * @author Michael Del Rosario
+ * @author Mithil Vijay
  * @see DataCell
  */
-public class TableInteriorCell extends DataCell {
+public class TableInteriorCell extends DataCell implements Comparable<DataCell> {
 	public static final int START_OF_TABLE_INTERIOR_ROWID = 4;
 	// Page Number
 	private int leftChildPointer;
@@ -40,9 +46,18 @@ public class TableInteriorCell extends DataCell {
 	 * First the rowId is grabbed and sent to the super constrcutor<br>
 	 * Then the leftChildPointer is stored
 	 * @param data the byte representation of a TableInteriorCell stored in a file
+	 * @param offset the location of the data cell within the page
 	 */
+	TableInteriorCell(byte[] data, short offset) {
+		super(Arrays.copyOfRange(data, START_OF_TABLE_INTERIOR_ROWID, START_OF_TABLE_INTERIOR_ROWID + Integer.BYTES),
+				offset);
+		ByteBuffer headerBuffer = ByteBuffer.wrap(data);
+		this.leftChildPointer = headerBuffer.getInt();
+	}
+	
 	TableInteriorCell(byte[] data) {
-		super(Arrays.copyOfRange(data, START_OF_TABLE_INTERIOR_ROWID, data.length));
+		super(Arrays.copyOfRange(data, START_OF_TABLE_INTERIOR_ROWID, START_OF_TABLE_INTERIOR_ROWID + Integer.BYTES),
+				(short)Page.ZERO);
 		ByteBuffer headerBuffer = ByteBuffer.wrap(data);
 		this.leftChildPointer = headerBuffer.getInt();
 	}
@@ -52,7 +67,7 @@ public class TableInteriorCell extends DataCell {
 	 *
 	 * @return an ArrayList containing the byte representation of a TableInteriorCell
 	 */
-	List<Byte> getBytes() {
+	public List<Byte> getBytes() {
 		ArrayList<Byte> output = new ArrayList<>();
 		
 		for(byte b: ByteHelpers.intToBytes(this.leftChildPointer)) {
@@ -65,6 +80,11 @@ public class TableInteriorCell extends DataCell {
 		
 		return output;
 	}
+	
+	public int size() {
+		return Config.TABLE_INTERIOR_CELL_SIZE;
+	}
+	
 	
 	/**
 	 * Overridden toEquals class to help with unit tests
