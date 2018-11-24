@@ -1,10 +1,12 @@
 package edu.utdallas.cs6360.davisbase.trees;
 
+import edu.utdallas.cs6360.davisbase.Config;
 import edu.utdallas.cs6360.davisbase.trees.*;
 import edu.utdallas.cs6360.davisbase.utils.ByteHelpers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static edu.utdallas.cs6360.davisbase.Config.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -39,14 +41,14 @@ class TableInteriorPageTest {
 	@BeforeEach
 	void setUp() {
 		this.config = new TableConfig(colTypesNoText);
-		this.testPage = new TableInteriorPage(PageType.TABLE_INTERIOR_ROOT, Page.ZERO);
+		this.testPage = new TableInteriorPage(PageType.TABLE_INTERIOR_ROOT, ZERO);
 	}
 	
 	@Test
 	void getBytes() {
 		testPage.getBytes();
 		TableInteriorPage page = new TableInteriorPage(ByteHelpers.byteArrayListToArray(testPage.getBytes()),
-				Page.ZERO);
+				ZERO);
 		
 		assertEquals(testPage, page);
 	}
