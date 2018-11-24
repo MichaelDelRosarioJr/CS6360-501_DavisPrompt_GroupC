@@ -1,7 +1,5 @@
 package edu.utdallas.cs6360.davisbase.trees;
 
-import edu.utdallas.cs6360.davisbase.Config;
-import edu.utdallas.cs6360.davisbase.trees.*;
 import edu.utdallas.cs6360.davisbase.utils.ByteHelpers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
