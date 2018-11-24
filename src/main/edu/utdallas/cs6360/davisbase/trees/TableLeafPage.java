@@ -325,4 +325,3 @@ public class TableLeafPage extends Page{
 		return Arrays.hashCode(array) + getNumOfCells() * getPageTypeCode() * getPageNumber();
 	}
 }
-

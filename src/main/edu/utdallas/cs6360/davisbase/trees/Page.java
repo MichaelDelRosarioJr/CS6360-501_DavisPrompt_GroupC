@@ -430,6 +430,4 @@ public abstract class Page {
 		}
 		return true;
 	}
-
-	
 }

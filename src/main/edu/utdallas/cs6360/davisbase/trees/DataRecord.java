@@ -494,5 +494,3 @@ public class DataRecord {
 		return result;
 	}
 }
-
-
