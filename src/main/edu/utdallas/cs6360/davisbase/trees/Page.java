@@ -1,8 +1,6 @@
 package edu.utdallas.cs6360.davisbase.trees;
 
-import edu.utdallas.cs6360.davisbase.Config;
 import edu.utdallas.cs6360.davisbase.utils.ByteHelpers;
-import sun.plugin.dom.exception.InvalidStateException;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -11,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static edu.utdallas.cs6360.davisbase.Config.*;
 import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.shortToBytes;
 
 /**
@@ -20,9 +19,7 @@ import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.shortToBytes;
  * @author Michael Del Rosario
  * @author Mithil Vijay
  */
-abstract public class Page {
-	static final int ZERO = 0;
-	public static final int ONE = 1;
+public abstract class Page {
 	private int pageNumber;
 	private PageType pageType;
 	
@@ -44,6 +41,16 @@ abstract public class Page {
 	private short startOfCellPointers;
 	
 	private ArrayList<DataCell> dataCells;
+	
+	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *        Constructors
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
 	
 	/**
 	 * Default constructor
@@ -86,7 +93,7 @@ abstract public class Page {
 	 * @param pageNumber the ordering of the page within the file
 	 */
 	Page(byte[] data, int pageNumber) {
-		//if(data.length != Config.PAGE_SIZE) { throw new IllegalArgumentException("Error invalid page size"); }
+		// TODO Check page size here
 		
 		ByteBuffer byteBuffer = ByteBuffer.wrap(data);
 		byte tmpPageType = byteBuffer.get();
@@ -117,20 +124,18 @@ abstract public class Page {
 	}
 	
 	/**
-	 * An abstract method that gets the best location to insert a cell into a page depending on
-	 * the page type and if its a leaf with text columns of variable length
-	 * @param newEntrySumOfTextFields the length of all the text fields of the new entry, if 0
-	 *                                it is assumed null or no text columns.
-	 *                                Ignored if a TableInteriorNode
-	 * @param config a TableConfig class representing the configuration of the tree based on the table's columns
-	 * @return the address of the best location for an insertion
+	 * Sorts the DataCells based on their location within the Page file
 	 */
-	public abstract int getFreeCellLocation(int newEntrySumOfTextFields, TableConfig config);
-	
 	public void sortDataCellsByOffset() {
 		this.dataCells.sort((o1, o2) -> o1.getPageOffset() - o2.getPageOffset());
 	}
 	
+	/**
+	 * Retrieves and recreates DataCells from the page file with the offsets
+	 * @param data an array of bytes that make up a page
+	 * @param offsets the location from the end of the page where the cells are located
+	 * @return an ArrayList of DataCell objects
+	 */
 	private ArrayList<DataCell> getDataCellsFromFileData(byte[] data, short[] offsets) {
 		ArrayList<DataCell> tmpDataCells = new ArrayList<>();
 		
@@ -138,6 +143,28 @@ abstract public class Page {
 			tmpDataCells.add(getDataCellAtOffsetInFile(data, s));
 		}
 		return tmpDataCells;
+	}
+	
+	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *      Getters and Setters
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
+	
+	/**
+	 * Adds a new cell to the data store array
+	 * @param data an array of bytes representing a data cell
+	 */
+	public void addDataCell(byte[] data) {
+		if(isLeaf()) {
+			this.dataCells.add(new TableLeafCell(data));
+		} else {
+			this.dataCells.add(new TableInteriorCell(data));
+		}
 	}
 	
 	/**
@@ -234,61 +261,6 @@ abstract public class Page {
 	 */
 	void setPageNumber(int pageNumber) { this.pageNumber = pageNumber; }
 	
-	// TODO: Update setters and getters
-	/**
-	 * Set the offset in the list for the specified position
-	 * @param index place to set the offset
-	 * @param offset new offset value
-	 */
-	void setOffsetAt(int index, short offset) { ; }
-	
-	/**
-	 * Add a new offset to the list for a new record and move all the other keys down<br>
-	 *
-	 * The List contains the offsets of each data cell in key sorted order so the correct position in
-	 * the list is assumed to have been determined before hand
-	 * @param index the pre-determined place in the list for the new offset value
-	 * @param offset the offset value for the new data cell
-	 */
-	void addOffsetToList(int index, short offset) { ; }
-	
-	/**
-	 * Add a new offset value to the first position in the list
-	 * @param offset the offset of the data cell position to add
-	 */
-	void addToFront(short offset) { ; }
-	
-	/**
-	 * Add a new offset value to the end of the list
-	 * @param offset the offset of the data cell position to add
-	 */
-	void addToEnd(short offset) { ; }
-	
-	/**
-	 * Get the offset value for the lowest valued key in the page
-	 * @return the offset value for the first data cell in the page
-	 */
-	short getFirstOffset() { return (short)2; }
-	
-	/**
-	 * Get the offset value for the highest valued key in the page
-	 * @return the offset value for the highest valued key in the page
-	 */
-	short getLastOffset() { return (short)2; }
-	
-	/**
-	 * Remove the first offset value and return it
-	 * @return the offset value for the data cell with the lowest valued key in the page
-	 */
-	short removeFirstOffset() { return (short)2; }
-	
-	/**
-	 * Remove the specified offset value and return it
-	 * @param index the offset value to retrieve
-	 * @return the specified offset value
-	 */
-	short removeOffsetAt(int index) { return (short)2; }
-	
 	/**
 	 * Check if the page is full and needs splitting<br>
 	 * 
@@ -313,14 +285,23 @@ abstract public class Page {
 		}
 	}
 	
-	void incrementNumOfCells(TableConfig config) {
+	/**
+	 * Increases the number of cells on the page
+	 */
+	void incrementNumOfCells() {
 		numOfCells++;
 	}
 	
-	void decrementNumOfCells(TableConfig config) {
+	/**
+	 * Decreases the number of cells on the page
+	 */
+	void decrementNumOfCells() {
 		numOfCells--;
 	}
 	
+	/**
+	 * Sorts the DataCell ArrayList based on rowId
+	 */
 	public void sort() {
 		Collections.sort(this.dataCells);
 	}
@@ -380,25 +361,45 @@ abstract public class Page {
 	public void writePage(RandomAccessFile file) throws IOException {
 		byte[] pageBytes = ByteHelpers.byteArrayListToArray(getBytes());
 		
-		file.seek(this.getPageNumber() * Config.PAGE_SIZE);
+		file.seek((long)this.getPageNumber() * PAGE_SIZE);
 		file.write(pageBytes);
 	}
 	
+	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *       Abstract Methods
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
+	/**
+	 * Abstract method all subclasses must implement that contains instructions for outputting itself to an array of
+	 * bytes to store itself on disk
+	 * @return an ArrayList containing the bytes that make up the page
+	 */
 	public abstract List<Byte> getBytes();
 	
+	/**
+	 * Abstract method all subclasses must implement that when given an array of bytes making up a page and an offset
+	 * in that page from the end of the page it recreates the DataCell from it's byte representation
+	 * @param data an array of bytes that make up a page in a file
+	 * @param offset an offset from the end of the page that acts as a pointer to a data cell
+	 * @return the DataCell that was represented by the bytes
+	 */
 	public abstract DataCell getDataCellAtOffsetInFile(byte[] data, short offset);
 	
-	public void addDataCell(DataCell cell, TableConfig config) {
-		this.dataCells.add(cell);
-		incrementNumOfCells(config);
-		sort();
-	}
-	
-	public void addDataCell(byte[] data, TableConfig config) {
-		if(isLeaf()) {
-			this.dataCells.add(new TableLeafCell(data));
-		}
-	}
+	/**
+	 * An abstract method that gets the best location to insert a cell into a page depending on
+	 * the page type and if its a leaf with text columns of variable length
+	 * @param newEntrySumOfTextFields the length of all the text fields of the new entry, if 0
+	 *                                it is assumed null or no text columns.
+	 *                                Ignored if a TableInteriorNode
+	 * @param config a TableConfig class representing the configuration of the tree based on the table's columns
+	 * @return the address of the best location for an insertion
+	 */
+	public abstract int getFreeCellLocation(int newEntrySumOfTextFields, TableConfig config);
 	
 	/**
 	 * Abstract class method that all subclasses must implement that contains instructions specific to each page type on
@@ -406,6 +407,15 @@ abstract public class Page {
 	 */
 	public abstract void printPage();
 	
+	/**
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 *        Static Methods
+	 * *****************************
+	 * *****************************
+	 * *****************************
+	 */
 	/**
 	 * A static helper method that accepts an 8 digit page header and if all bytes are null
 	 * then it returns true, else it returns false

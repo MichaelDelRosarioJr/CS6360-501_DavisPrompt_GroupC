@@ -4,6 +4,7 @@ import edu.utdallas.cs6360.davisbase.utils.ByteHelpers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static edu.utdallas.cs6360.davisbase.Config.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -35,7 +36,7 @@ class TableLeafPageTest {
 	@BeforeEach
 	void setUp() {
 		config = new TableConfig(columnTypesNoText);
-		testPage = new TableLeafPage(PageType.TABLE_LEAF_ROOT, Page.ZERO, Page.ZERO);
+		testPage = new TableLeafPage(PageType.TABLE_LEAF_ROOT, ZERO, ZERO);
 	}
 	
 	@Test
@@ -49,7 +50,7 @@ class TableLeafPageTest {
 	@Test
 	void getBytes() {
 		TableLeafPage tableLeafPage = new
-				TableLeafPage(ByteHelpers.byteArrayListToArray(testPage.getBytes()), Page.ZERO);
+				TableLeafPage(ByteHelpers.byteArrayListToArray(testPage.getBytes()), ZERO);
 		assertEquals(testPage, tableLeafPage);
 	}
 }

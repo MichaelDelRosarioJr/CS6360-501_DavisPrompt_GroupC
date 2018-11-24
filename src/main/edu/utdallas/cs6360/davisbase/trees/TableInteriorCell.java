@@ -1,10 +1,10 @@
 package edu.utdallas.cs6360.davisbase.trees;
 
-import edu.utdallas.cs6360.davisbase.Config;
 import edu.utdallas.cs6360.davisbase.utils.ByteHelpers;
-
 import java.nio.ByteBuffer;
 import java.util.*;
+
+import static edu.utdallas.cs6360.davisbase.Config.*;
 
 /**
  * Class to represent a Table Interior Cell of 8 bytes in size
@@ -17,7 +17,6 @@ import java.util.*;
  * @see DataCell
  */
 public class TableInteriorCell extends DataCell implements Comparable<DataCell> {
-	public static final int START_OF_TABLE_INTERIOR_ROWID = 4;
 	// Page Number
 	private int leftChildPointer;
 	
@@ -74,7 +73,7 @@ public class TableInteriorCell extends DataCell implements Comparable<DataCell> 
 	 */
 	TableInteriorCell(byte[] data) {
 		super(Arrays.copyOfRange(data, START_OF_TABLE_INTERIOR_ROWID, START_OF_TABLE_INTERIOR_ROWID + Integer.BYTES),
-				(short)Page.ZERO);
+				(short) ZERO);
 		ByteBuffer headerBuffer = ByteBuffer.wrap(data);
 		this.leftChildPointer = headerBuffer.getInt();
 	}
@@ -112,7 +111,7 @@ public class TableInteriorCell extends DataCell implements Comparable<DataCell> 
 	 * @return an integer representing the size of an interior cell
 	 */
 	public int size() {
-		return Config.TABLE_INTERIOR_CELL_SIZE;
+		return TABLE_INTERIOR_CELL_SIZE;
 	}
 	
 	

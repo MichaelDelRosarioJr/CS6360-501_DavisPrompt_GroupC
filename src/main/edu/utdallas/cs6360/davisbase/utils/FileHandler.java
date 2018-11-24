@@ -1,6 +1,5 @@
 package edu.utdallas.cs6360.davisbase.utils;
 
-import edu.utdallas.cs6360.davisbase.Config;
 import edu.utdallas.cs6360.davisbase.DatabaseType;
 
 import java.io.File;
@@ -8,6 +7,8 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static edu.utdallas.cs6360.davisbase.Config.*;
 
 /**
  * @author Charles Krol
@@ -31,15 +32,15 @@ public class FileHandler {
     public static void initializeDataStore() {
 
         /** Create data directory at the current OS location to hold */
-        createDatabaseDirectory(Config.DATA_DIRECTORY);
-        createDatabaseDirectory(Config.CATALOG_DIRECTORY);
-        createDatabaseDirectory(Config.USER_DATA_DIRECTORY);
+        createDatabaseDirectory(DATA_DIRECTORY);
+        createDatabaseDirectory(CATALOG_DIRECTORY);
+        createDatabaseDirectory(USER_DATA_DIRECTORY);
 
         /** Create davisbase_tables system catalog */
-        createTableFile(getTableFileName(Config.CATALOG_TABLE, DatabaseType.CATALOG));
+        createTableFile(getTableFileName(CATALOG_TABLE, DatabaseType.CATALOG));
 
         /** Create davisbase_columns system catalog */
-        createTableFile(getTableFileName(Config.CATALOG_COLUMN, DatabaseType.CATALOG));
+        createTableFile(getTableFileName(CATALOG_COLUMN, DatabaseType.CATALOG));
 
     }
 
@@ -71,9 +72,9 @@ public class FileHandler {
 	 */
 	public static String getTableFileName(String tableName, DatabaseType type) {
 		if(type == DatabaseType.USER) {
-			return Config.USER_DATA_DIRECTORY + "/" + tableName + ".tbl";
+			return USER_DATA_DIRECTORY + "/" + tableName + ".tbl";
 		} else {
-			return Config.CATALOG_DIRECTORY + "/" + tableName + ".tbl";
+			return CATALOG_DIRECTORY + "/" + tableName + ".tbl";
 		}
 	}
 	
@@ -95,7 +96,7 @@ public class FileHandler {
     public static boolean createTableFile(String fileName) {
         if (!doesTableExist(fileName)) {
             try (RandomAccessFile file = new RandomAccessFile(fileName, "rw")) {
-	            file.setLength(Config.PAGE_SIZE);
+	            file.setLength(PAGE_SIZE);
             } catch (IOException e1) {
 	            LOGGER.log(Level.SEVERE, "Unable to create the " + fileName + " file");
 	            LOGGER.log(Level.SEVERE, e1.toString());

@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static edu.utdallas.cs6360.davisbase.Config.*;
+
 /**
  * @author Charles Krol
  * @author Matthew Villarreal
@@ -31,7 +33,7 @@ public class DavisBase {
      * Each time the semicolon (;) delimiter is entered, the userCommand
      * String is re-populated.
      */
-    private static Scanner scanner = new Scanner(System.in, Config.CHARACTER_SET).useDelimiter(";");
+    private static Scanner scanner = new Scanner(System.in, CHARACTER_SET).useDelimiter(";");
 
     /**
      * **********************************************************************
@@ -130,11 +132,11 @@ public class DavisBase {
      * return the DavisBase version
      */
     private static String getVersion() {
-        return Config.VERSION;
+        return VERSION;
     }
 
     private static String getCopyright() {
-        return Config.COPYRIGHT;
+        return COPYRIGHT;
     }
 
     private static void displayVersion() {

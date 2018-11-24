@@ -29,6 +29,7 @@ public final class Config {
 	public static final int PAGE_SIZE = 512;
 	public static final byte PAGE_HEADER_SIZE = 8;
 	public static final byte TABLE_INTERIOR_CELL_SIZE = 8;
+	public static final byte START_OF_TABLE_INTERIOR_ROWID = 4;
 	public static final byte TABLE_LEAF_CELL_HEADER_SIZE = 6;
 	public static final int MIN_ORDER_OF_TREE = 2;
 	

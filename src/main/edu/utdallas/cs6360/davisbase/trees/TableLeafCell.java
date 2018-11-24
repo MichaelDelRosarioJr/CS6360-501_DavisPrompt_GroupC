@@ -65,7 +65,7 @@ public class TableLeafCell extends DataCell {
 	TableLeafCell(byte[] data, short offset) {
 		super(Arrays.copyOfRange(data, START_OF_LEAF_CELL_ROW_ID, START_OF_LEAF_CELL_ROW_ID + Integer.BYTES),
 				offset);
-		int payLoadSize = ByteBuffer.wrap(data).getShort(Page.ZERO);
+		int payLoadSize = ByteBuffer.wrap(data).getShort(Config.ZERO);
 		this.payload = new DataRecord(Arrays.copyOfRange(data, START_OF_LEAF_CELL_PAYLOAD, START_OF_LEAF_CELL_PAYLOAD
 				+ payLoadSize));
 	}
@@ -76,7 +76,7 @@ public class TableLeafCell extends DataCell {
 	 */
 	TableLeafCell(byte[] data) {
 		super(Arrays.copyOfRange(data, START_OF_LEAF_CELL_ROW_ID, START_OF_LEAF_CELL_ROW_ID + Integer.BYTES));
-		int payLoadSize = ByteBuffer.wrap(data).getShort(Page.ZERO);
+		int payLoadSize = ByteBuffer.wrap(data).getShort(Config.ZERO);
 		this.payload = new DataRecord(Arrays.copyOfRange(data, START_OF_LEAF_CELL_PAYLOAD, START_OF_LEAF_CELL_PAYLOAD
 				+ payLoadSize));
 	}

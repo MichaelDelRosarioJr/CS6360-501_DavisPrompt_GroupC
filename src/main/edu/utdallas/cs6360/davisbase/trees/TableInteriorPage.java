@@ -1,10 +1,9 @@
 package edu.utdallas.cs6360.davisbase.trees;
 
-import edu.utdallas.cs6360.davisbase.Config;
-
 import java.nio.ByteBuffer;
 import java.util.*;
 
+import static edu.utdallas.cs6360.davisbase.Config.*;
 import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.intToBytes;
 import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.shortToBytes;
 
@@ -90,7 +89,7 @@ public class TableInteriorPage extends Page{
 	 */
 	@Override
 	public List<Byte> getBytes() {
-		ArrayList<Byte> output = new ArrayList<>(Config.PAGE_SIZE);
+		ArrayList<Byte> output = new ArrayList<>(PAGE_SIZE);
 		
 		int i = 2;
 		output.add(getPageType().getByteCode());
@@ -111,7 +110,7 @@ public class TableInteriorPage extends Page{
 		
 		for(DataCell c: getDataCells()) {
 			ArrayList<Byte> bytes = (ArrayList<Byte>)c.getBytes();
-			for(int j = output.size() - 1; j > output.size() - 1 - Config.TABLE_INTERIOR_CELL_SIZE; j--) {
+			for(int j = output.size() - 1; j > output.size() - 1 - TABLE_INTERIOR_CELL_SIZE; j--) {
 				output.add(j, bytes.get(j - output.size() + 1));
 				if(j <= i) {
 					throw new IllegalArgumentException("Error: Offset Array and Data Cells have met and page is full");
@@ -129,11 +128,11 @@ public class TableInteriorPage extends Page{
 	 */
 	@Override
 	public DataCell getDataCellAtOffsetInFile(byte[] data, short offset) {
-		int beginningOfFirstCell = Config.PAGE_SIZE - 1 - offset;
+		int beginningOfFirstCell = PAGE_SIZE - 1 - offset;
 		
 		// Create array and grab data cell bytes
-		byte[] payloadBytes = new byte[Config.TABLE_INTERIOR_CELL_SIZE];
-		for(int i = beginningOfFirstCell; i > beginningOfFirstCell - Config.TABLE_INTERIOR_CELL_SIZE; i--) {
+		byte[] payloadBytes = new byte[TABLE_INTERIOR_CELL_SIZE];
+		for(int i = beginningOfFirstCell; i > beginningOfFirstCell - TABLE_INTERIOR_CELL_SIZE; i--) {
 			payloadBytes[beginningOfFirstCell - i] = data[i];
 		}
 		
@@ -165,7 +164,7 @@ public class TableInteriorPage extends Page{
 		int lastCellPosition = 0;
 		int currentCellPosition = 0;
 		for(DataCell c : getDataCells()) {
-			currentCellPosition = c.getPageOffset() / Config.TABLE_INTERIOR_CELL_SIZE;
+			currentCellPosition = c.getPageOffset() / TABLE_INTERIOR_CELL_SIZE;
 			// If more than 1 position away from last cell then lastCellPosition+1 is free
 			if (currentCellPosition - lastCellPosition > ONE) {
 				// Fix the array order

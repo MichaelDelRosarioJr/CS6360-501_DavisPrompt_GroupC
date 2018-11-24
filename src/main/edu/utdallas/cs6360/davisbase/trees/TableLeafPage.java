@@ -1,11 +1,11 @@
 package edu.utdallas.cs6360.davisbase.trees;
 
-import edu.utdallas.cs6360.davisbase.Config;
 
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.logging.Logger;
 
+import static edu.utdallas.cs6360.davisbase.Config.*;
 import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.*;
 
 /**
@@ -17,8 +17,6 @@ import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.*;
  */
 public class TableLeafPage extends Page{
 	private static final Logger LOGGER = Logger.getLogger(TableLeafPage.class.getName());
-	private static final int LARGEST_PAGE_SIZE = 65536;
-	private static final int ZERO = 0;
 	
 	private int nextPagePointer;
 	
@@ -83,9 +81,8 @@ public class TableLeafPage extends Page{
 	 * Adds a new TableLeafCell to the TableLeafPage and then sorts the cell offsets by rowId
 	 * @param tableLeafCell the new cell to add to the page
 	 */
-	void addDataCell(TableLeafCell tableLeafCell) {
-		addDataCell(tableLeafCell);
-		sort();
+	void addDataCell(TableLeafCell tableLeafCell, TableConfig tableConfig) {
+		//TODO:
 	}
 	
 	/**
@@ -172,7 +169,6 @@ public class TableLeafPage extends Page{
 		if(!config.isHasTextColumns()) {
 			int lastCellPosition = 0;
 			int currentCellPosition = 0;
-			entrySize = config.getDataMaxRecordSize();
 			
 			// Sort array by their location within the page
 			// normally they are sorted by rowId
@@ -234,7 +230,7 @@ public class TableLeafPage extends Page{
 	 */
 	@Override
 	public DataCell getDataCellAtOffsetInFile(byte[] data, short offset) {
-		int beginningOfFirstCell = Config.PAGE_SIZE - 1 - offset;
+		int beginningOfFirstCell = PAGE_SIZE - 1 - offset;
 		
 		// Get number of bytes in payload to determine record length
 		// Can't use TableConfig.getDataMaxRecordSize because of variable length Text fields
@@ -260,7 +256,7 @@ public class TableLeafPage extends Page{
 	 */
 	@Override
 	public List<Byte> getBytes() {
-		ArrayList<Byte> output = new ArrayList<>(Config.PAGE_SIZE);
+		ArrayList<Byte> output = new ArrayList<>(PAGE_SIZE);
 		
 		int i = 2;
 		output.add(getPageType().getByteCode());

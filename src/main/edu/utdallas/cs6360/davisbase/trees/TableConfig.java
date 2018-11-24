@@ -1,9 +1,9 @@
 package edu.utdallas.cs6360.davisbase.trees;
 
-import edu.utdallas.cs6360.davisbase.Config;
-
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static edu.utdallas.cs6360.davisbase.Config.*;
 
 /**
  * Class that stores configuration details for specific instances of Table Trees<br>
@@ -18,8 +18,6 @@ import java.util.logging.Logger;
  */
 public class TableConfig {
 	private static final Logger LOGGER = Logger.getLogger(TableConfig.class.getName());
-	
-	private static final int ZERO = 0;
 	
 	// DataRecord Size: different depending on the CREATE TABLE command
 	private int dataMaxRecordSize;
@@ -154,7 +152,7 @@ public class TableConfig {
 	 * can fit on an interior page
 	 */
 	private int calculateTreeOrder() {
-		return (Config.PAGE_SIZE - Config.PAGE_HEADER_SIZE) / (Short.BYTES + Config.TABLE_INTERIOR_CELL_SIZE);
+		return (PAGE_SIZE - PAGE_HEADER_SIZE) / (Short.BYTES + TABLE_INTERIOR_CELL_SIZE);
 	}
 	
 	/**
@@ -179,19 +177,21 @@ public class TableConfig {
 	 * 	 * can fit on an interior page
 	 */
 	private int calculateLeafPageDegree() {
-		return (Config.PAGE_SIZE - Config.PAGE_HEADER_SIZE) /
-				(Short.BYTES + Config.TABLE_LEAF_CELL_HEADER_SIZE + Byte.BYTES + this.numOfColumns +
+		return (PAGE_SIZE - PAGE_HEADER_SIZE) /
+				(Short.BYTES + TABLE_LEAF_CELL_HEADER_SIZE + Byte.BYTES + this.numOfColumns +
 						this.dataMaxRecordSize);
 	}
+	
 	/**
 	 * Used to ensure that this configuration will produce valid trees by making sure no interior/leaf page has a
 	 * degree < 2
 	 */
 	private void checkTreeOrder() {
-		if (treeOrder < Config.MIN_ORDER_OF_TREE || leafPageDegree < Config.MIN_ORDER_OF_TREE) {
+		if (treeOrder < MIN_ORDER_OF_TREE || leafPageDegree < MIN_ORDER_OF_TREE) {
 			throw new IllegalStateException("Error this tree order < 2 or it's leaf nodes have degree < 2");
 		}
 	}
+	
 	/**
 	 * Calculates the size of the column data cells when passed an array of byte type codes<br>
 	 *     For Text columns it returns the largest possible record size since Text columns make it variable in length
