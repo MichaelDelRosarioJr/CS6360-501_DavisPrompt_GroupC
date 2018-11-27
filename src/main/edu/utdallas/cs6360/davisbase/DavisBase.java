@@ -2,10 +2,7 @@ package edu.utdallas.cs6360.davisbase;
 
 import edu.utdallas.cs6360.davisbase.utils.FileHandler;
 
-import java.util.Scanner;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static edu.utdallas.cs6360.davisbase.Config.*;
 
@@ -289,13 +286,15 @@ public class DavisBase {
         if (!checkCreateTable(createTableString)) {
             return;
         } else {
-            //TEST: See a success message.
+            //TEST: See a success message. create table tablename ( rowid int  primary key , ab text);
             ArrayList<String> tokens = cleanCommand(createTableString);
             /** example create table table_name .....
              * so the token at second position is table name */
             if (!FileHandler.createTable(tokens.get(2))) {
                 System.out.println("OOPS! Table " + tokens.get(2) + " already exists");
             } else {
+                HashMap<String, String> columnNameTypeMap = getColumnNameTypeMap(tokens);
+//                System.out.println(columnNameTypeMap);
                 System.out.println("SUCCESS! Creating table");
             }
         }
@@ -1014,6 +1013,28 @@ public class DavisBase {
 //		}
 
         return command;
+    }
+
+    /**
+     * Get column name to column type map from create query
+     * @param tokens query tokens
+     * @return map of column name to column type
+     */
+    private static HashMap<String, String> getColumnNameTypeMap(ArrayList<String> tokens){
+        // using linked map to preserve order of column names
+        LinkedHashMap<String, String> map = new LinkedHashMap<>();
+
+        // start from 4 as column names start from index 4 in tokens list
+        for(int i = 4; i < tokens.size() - 2; i++){
+            // add token which is after comma as column name and after that it's column type
+            if(tokens.get(i).contains(",")){
+                map.put(tokens.get(i+1), tokens.get(i+2));
+            }
+            else if( i == 4){
+                map.put(tokens.get(i), tokens.get(i+1));
+            }
+        }
+        return map;
     }
 
 }
