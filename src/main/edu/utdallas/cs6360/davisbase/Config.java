@@ -19,8 +19,8 @@ public final class Config {
 	public static final String DATA_DIRECTORY = "data";
 	public static final String CATALOG_DIRECTORY = DATA_DIRECTORY + "/" + "catalog";
 	public static final String USER_DATA_DIRECTORY = DATA_DIRECTORY + "/" + "user_data";
-	public static final String CATALOG_TABLE = CATALOG_DIRECTORY + "/" + "davisbase_tables";
-	public static final String CATALOG_COLUMN = CATALOG_DIRECTORY + "/" + "davisbase_columns";
+	public static final String CATALOG_TABLE = "davisbase_tables";
+	public static final String CATALOG_COLUMN = "davisbase_columns";
 	
 	
 	/**
