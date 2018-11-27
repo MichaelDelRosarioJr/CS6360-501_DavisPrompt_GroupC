@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -119,14 +120,34 @@ public abstract class Page {
 		for(int i = ZERO; i < this.numOfCells; i++) {
 			offsets[i] = byteBuffer.getShort();
 		}
+		initDataCellsFromFile(data);
+	}
+	
+	private void initDataCellsFromFile(byte[] data) {
+		byte[] inOrderBytes = ByteHelpers.reverseByteArray(data);
+		int byteArrayPointer = ZERO;
 		
-		this.dataCells = getDataCellsFromFileData(data, offsets);
+		if(isLeaf()) {
+			for(int i = 0; i < numOfCells; i++) {
+				int startOfDataCell = byteArrayPointer;
+				int dataCellSize = ByteBuffer.wrap(inOrderBytes).getShort(startOfDataCell) + TABLE_LEAF_CELL_HEADER_SIZE;
+				
+				addDataCell(Arrays.copyOfRange(inOrderBytes, startOfDataCell, dataCellSize));
+				byteArrayPointer += dataCellSize;
+			}
+		} else {
+			int startOfDataCell = byteArrayPointer;
+			for(int i = 0; i < numOfCells; i++) {
+				addDataCell(Arrays.copyOfRange(inOrderBytes, startOfDataCell, TABLE_INTERIOR_CELL_SIZE));
+				startOfDataCell += TABLE_INTERIOR_CELL_SIZE;
+			}
+		}
 	}
 	
 	/**
 	 * Sorts the DataCells based on their location within the Page file
 	 */
-	public void sortDataCellsByOffset() {
+	void sortDataCellsByOffset() {
 		this.dataCells.sort((o1, o2) -> o1.getPageOffset() - o2.getPageOffset());
 	}
 	
@@ -136,6 +157,7 @@ public abstract class Page {
 	 * @param offsets the location from the end of the page where the cells are located
 	 * @return an ArrayList of DataCell objects
 	 */
+	/* TODO: REMOVE AFTER TESTING writePage() and updated byte constructor
 	private ArrayList<DataCell> getDataCellsFromFileData(byte[] data, short[] offsets) {
 		ArrayList<DataCell> tmpDataCells = new ArrayList<>();
 		
@@ -143,7 +165,7 @@ public abstract class Page {
 			tmpDataCells.add(getDataCellAtOffsetInFile(data, s));
 		}
 		return tmpDataCells;
-	}
+	}*/
 	
 	/**
 	 * *****************************
@@ -159,7 +181,7 @@ public abstract class Page {
 	 * Adds a new cell to the data store array
 	 * @param data an array of bytes representing a data cell
 	 */
-	public void addDataCell(byte[] data) {
+	private void addDataCell(byte[] data) {
 		if(isLeaf()) {
 			this.dataCells.add(new TableLeafCell(data));
 		} else {
@@ -355,14 +377,39 @@ public abstract class Page {
 	/**
 	 * A method to write the update page data to the file, each subclass uses their own getBytes() method which contains
 	 * class specific instructions on how to prepare the bytes for the file
-	 * @param file the RandomAccessFile associated with the page's database file
+	 * @param treeFile the RandomAccessFile associated with the page's database file
 	 * @throws IOException is thrown when an I/O operation fails
 	 */
-	public void writePage(RandomAccessFile file) throws IOException {
-		byte[] pageBytes = ByteHelpers.byteArrayListToArray(getBytes());
+	void writePage(RandomAccessFile treeFile) throws IOException {
+		// Pointers into the table file
+		// The beginning of this page and the start the next and the
+		// beginning of the data cell area at the end of the file
+		long addressPointer = ((long)this.getPageNumber() * PAGE_SIZE);
+		long startOfNextPage = addressPointer + PAGE_SIZE;
+		int startOfDataCells = (int)(startOfNextPage - this.startOfCellPointers);
 		
-		file.seek((long)this.getPageNumber() * PAGE_SIZE);
-		file.write(pageBytes);
+		// Expand the file if needed
+		if(treeFile.length() < startOfNextPage) {
+			treeFile.setLength(startOfNextPage);
+		}
+		
+		// Get page bytes and initialize pointers into the array
+		byte[] pageBytes = ByteHelpers.byteArrayListToArray(getBytes());
+		int headerSize = 8 + 2*this.numOfCells;
+		int freeSpaceSize = PAGE_SIZE - this.startOfCellPointers - headerSize;
+		
+		
+		// Seek to first address of this page and
+		// write the header and data cell offset values
+		treeFile.seek(addressPointer);
+		treeFile.write(Arrays.copyOfRange(pageBytes, ZERO, headerSize));
+		
+		
+		// Fill the center of the file with null values
+		treeFile.write(new byte[freeSpaceSize], startOfDataCells, freeSpaceSize);
+		
+		// Fill the remaining bytes in the page with the rest of the byte array
+		treeFile.write(Arrays.copyOfRange(pageBytes, headerSize, this.startOfCellPointers));
 	}
 	
 	/**
