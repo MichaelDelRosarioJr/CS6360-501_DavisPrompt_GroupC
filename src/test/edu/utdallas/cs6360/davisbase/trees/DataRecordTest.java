@@ -5,6 +5,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -15,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Mithil Vijay
  */
 class DataRecordTest {
+	private static final Logger LOGGER = Logger.getLogger(DataRecordTest.class.getName());
 	static DataType[] columnTypes = {DataType.NULL1_TYPE_CODE, DataType.NULL2_TYPE_CODE,
 		DataType.NULL4_TYPE_CODE, DataType.NULL8_TYPE_CODE, DataType.TINY_INT_TYPE_CODE,
 		DataType.SHORT_TYPE_CODE, DataType.INT_TYPE_CODE, DataType.LONG_TYPE_CODE,
