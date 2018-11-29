@@ -1,7 +1,10 @@
 package edu.utdallas.cs6360.davisbase;
 
+import edu.utdallas.cs6360.davisbase.trees.DataType;
+import edu.utdallas.cs6360.davisbase.trees.TableTree;
 import edu.utdallas.cs6360.davisbase.utils.FileHandler;
 
+import java.io.IOException;
 import java.util.*;
 
 import static edu.utdallas.cs6360.davisbase.Config.*;
@@ -290,13 +293,19 @@ public class DavisBase {
             ArrayList<String> tokens = cleanCommand(createTableString);
             /** example create table table_name .....
              * so the token at second position is table name */
-            if (!FileHandler.createTable(tokens.get(2))) {
-                System.out.println("OOPS! Table " + tokens.get(2) + " already exists");
-            } else {
-                HashMap<String, String> columnNameTypeMap = getColumnNameTypeMap(tokens);
+//            if (!FileHandler.createTable(tokens.get(2))) {
+//                System.out.println("OOPS! Table " + tokens.get(2) + " already exists");
+//            } else {
+                DataType[] colTypes = getColTypes(tokens);
+                String tablename = tokens.get(2);
+                try {
+                    TableTree tableTree = new TableTree(tablename, colTypes);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
 //                System.out.println(columnNameTypeMap);
                 System.out.println("SUCCESS! Creating table");
-            }
+            //}
         }
 
 //		/* Define table file name */
@@ -1015,26 +1024,49 @@ public class DavisBase {
         return command;
     }
 
+//    /**
+//     * Get column name to column type map from create query
+//     * @param tokens query tokens
+//     * @return map of column name to column type
+//     */
+//    private static HashMap<String, String> getColumnNameTypeMap(ArrayList<String> tokens){
+//        // using linked map to preserve order of column names
+//        LinkedHashMap<String, String> map = new LinkedHashMap<>();
+//
+//        // start from 4 as column names start from index 4 in tokens list
+//        for(int i = 4; i < tokens.size() - 2; i++){
+//            // add token which is after comma as column name and after that it's column type
+//            if(tokens.get(i).contains(",")){
+//                map.put(tokens.get(i+1), tokens.get(i+2));
+//            }
+//            else if( i == 4){
+//                map.put(tokens.get(i), tokens.get(i+1));
+//            }
+//        }
+//        return map;
+//    }
+
     /**
-     * Get column name to column type map from create query
+     * Get column datatypes from create query
      * @param tokens query tokens
-     * @return map of column name to column type
+     * @return DataType array
      */
-    private static HashMap<String, String> getColumnNameTypeMap(ArrayList<String> tokens){
-        // using linked map to preserve order of column names
-        LinkedHashMap<String, String> map = new LinkedHashMap<>();
+    private static DataType[] getColTypes(ArrayList<String> tokens){
+
+        ArrayList<DataType> dataTypeArrayList = new ArrayList<>();
 
         // start from 4 as column names start from index 4 in tokens list
         for(int i = 4; i < tokens.size() - 2; i++){
             // add token which is after comma as column name and after that it's column type
             if(tokens.get(i).contains(",")){
-                map.put(tokens.get(i+1), tokens.get(i+2));
+                dataTypeArrayList.add(DataType.getDataTypeCodeFromString(tokens.get(i+2)));
             }
             else if( i == 4){
-                map.put(tokens.get(i), tokens.get(i+1));
+                dataTypeArrayList.add(DataType.getDataTypeCodeFromString(tokens.get(i+1)));
             }
         }
-        return map;
+        return dataTypeArrayList.toArray(new DataType[dataTypeArrayList.size()]);
     }
+
 
 }
