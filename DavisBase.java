@@ -317,18 +317,42 @@ public class DavisBase {
                 DataType[] colTypes = getColTypes(tokens);
                 String tablename = tokens.get(2);
                 try {
+                	//Create table tree for the new table.
                     TableTree tableTree = new TableTree(tablename, colTypes);
+                    //Create table trees objects for the metadata
+                    TableTree metaDataTables = new TableTree("davisbase_tables", DatabaseType.CATALOG);
+                    TableTree metaDataColumns = new TableTree("davisbase_columns", DatabaseType.CATALOG);
+                    
                     
                     /*  Code to insert a row in the davisbase_tables table
                      *  i.e. database catalog meta-data
                      */
+                    /*
+                    //Insert table row into davisbase_tables.tbl
+                    DataType[] tableType = { DataType.TEXT_TYPE_CODE};
+                    String[] tableName = {tokens.get(2)};
+                    metaDataTables.insert(0, tableType, tableName);
                     
                     
+                    */
 
                     /*  Code to insert rows in the davisbase_columns table
                      *  for each column in the new table
                      *  i.e. database catalog meta-data
                      */
+                  //Insert Column rows into davisbase_columns.tbl
+                    /*
+                    DataType[] columnDataTypeArray = getColumnArray(colTypes);
+                    String[] columnNames = getColumnNamesFromCreateQuery(tokens);
+                    for(int i = 0; i < columnNames.length; i++)
+                    {
+                    	String[] colName = {tokens.get(2), columnNames[i], DataType.getDataTypeString(columnDataTypeArray[i]), "0", "TRUE"};
+                    	DataType[] dt = {DataType.TEXT_TYPE_CODE, DataType.TEXT_TYPE_CODE, DataType.TEXT_TYPE_CODE, DataType.TINY_INT_TYPE_CODE, DataType.TEXT_TYPE_CODE,};
+                    	metaDataColumns.insert(0, dt, colName);
+                    	
+                	}
+                	*/
+                    
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -1036,27 +1060,47 @@ public class DavisBase {
         return command;
     }
 
-//    /**
-//     * Get column name to column type map from create query
-//     * @param tokens query tokens
-//     * @return map of column name to column type
-//     */
-//    private static HashMap<String, String> getColumnNameTypeMap(ArrayList<String> tokens){
-//        // using linked map to preserve order of column names
-//        LinkedHashMap<String, String> map = new LinkedHashMap<>();
-//
-//        // start from 4 as column names start from index 4 in tokens list
-//        for(int i = 4; i < tokens.size() - 2; i++){
-//            // add token which is after comma as column name and after that it's column type
-//            if(tokens.get(i).contains(",")){
-//                map.put(tokens.get(i+1), tokens.get(i+2));
-//            }
-//            else if( i == 4){
-//                map.put(tokens.get(i), tokens.get(i+1));
-//            }
-//        }
-//        return map;
-//    }
+    /**
+     * Get column name to column type map from create query
+     * @param tokens query tokens
+     * @return map of column name to column type
+     */
+    private static HashMap<String, String> getColumnNameTypeMap(ArrayList<String> tokens){
+        // using linked map to preserve order of column names
+        LinkedHashMap<String, String> map = new LinkedHashMap<>();
+
+        // start from 4 as column names start from index 4 in tokens list
+        for(int i = 4; i < tokens.size() - 2; i++){
+            // add token which is after comma as column name and after that it's column type
+            if(tokens.get(i).contains(",")){
+                map.put(tokens.get(i+1), tokens.get(i+2));
+            }
+            else if( i == 4){
+                map.put(tokens.get(i), tokens.get(i+1));
+            }
+        }
+        return map;
+    }
+
+    /**
+     * Get column names create query
+     * @param tokens query tokens
+     * @return array of column names
+     */
+    private static String[] getColumnNamesFromCreateQuery(ArrayList<String> tokens){
+        ArrayList<String> columns = new ArrayList<>();
+        // start from 4 as column names start from index 4 in tokens list
+        for(int i = 4; i < tokens.size() - 2; i++){
+            // add token which is after comma as column name and after that it's column type
+            if(tokens.get(i).contains(",")){
+                columns.add(tokens.get(i+1));
+            }
+            else if( i == 4){
+                columns.add(tokens.get(i));
+            }
+        }
+        return columns.toArray(new String[columns.size()]);
+    }
 
     /**
      * Get column datatypes from create query
@@ -1078,6 +1122,17 @@ public class DavisBase {
             }
         }
         return dataTypeArrayList.toArray(new DataType[dataTypeArrayList.size()]);
+    }
+    
+    private static DataType[] getColumnArray(DataType[] data){
+    	ArrayList<DataType>columnArrayList = new ArrayList<>();
+    	
+    	for(int i = 0; i < data.length; i++)
+    	{
+    		columnArrayList.add(DataType.TEXT_TYPE_CODE);
+    	}
+    	
+    	 return columnArrayList.toArray(new DataType[columnArrayList.size()]);
     }
 
 

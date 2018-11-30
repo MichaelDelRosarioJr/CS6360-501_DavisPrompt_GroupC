@@ -82,6 +82,8 @@ public class TableTree {
 	}
 	
 	public void insert(int rowId, DataType[] colTypes, String[] colValues) throws IOException {
+		//TODO: Do we need to insert the rowid into the colTypes and colValues?
+		
 		// Check if root page is null
 		byte[] header = getHeader(ZERO);
 		if (Page.isFreePage(header)) {
