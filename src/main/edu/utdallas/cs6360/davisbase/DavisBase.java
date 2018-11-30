@@ -297,6 +297,7 @@ public class DavisBase {
 //                System.out.println("OOPS! Table " + tokens.get(2) + " already exists");
 //            } else {
                 DataType[] colTypes = getColTypes(tokens);
+                String[] isNull = getIsColumnsNullableFromCreateQuery(tokens);
                 String tablename = tokens.get(2);
                 try {
                     TableTree tableTree = new TableTree(tablename, colTypes);
@@ -1090,7 +1091,7 @@ public class DavisBase {
         ArrayList<String> columns = new ArrayList<>();
         // start from 4 as column names start from index 4 in tokens list
         for(int i = 4; i < tokens.size() - 2; i++){
-            // add token which is after comma as column name and after that it's column type
+            // add token which is after comma as column name
             if(tokens.get(i).contains(",")){
                 columns.add(tokens.get(i+1));
             }
@@ -1121,6 +1122,34 @@ public class DavisBase {
             }
         }
         return dataTypeArrayList.toArray(new DataType[dataTypeArrayList.size()]);
+    }
+
+    /**
+     * Method to get String array of columns which are nullable or not from create query
+     * @param tokens
+     * @return String[] of "true"/"false"
+     */
+    private static String[] getIsColumnsNullableFromCreateQuery(ArrayList<String> tokens){
+        ArrayList<String> columns = new ArrayList<>();
+        // start from 4 as column names start from index 4 in tokens list
+        StringBuilder s = new StringBuilder();
+        for(int i = 4; i < tokens.size(); i++){
+            if(tokens.get(i).equals(",") || tokens.get(i).equals(")")){
+                if(s.toString().contains("not null") || s.toString().contains("primary key")){
+                    columns.add("false");
+                }
+                else{
+                    columns.add("true");
+                }
+                s.setLength(0);
+            }
+            else {
+                s.append(tokens.get(i));
+                s.append(" ");
+            }
+
+        }
+        return columns.toArray(new String[columns.size()]);
     }
 
 
