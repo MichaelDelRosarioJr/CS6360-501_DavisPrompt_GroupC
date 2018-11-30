@@ -1,5 +1,6 @@
 package edu.utdallas.cs6360.davisbase.trees;
 
+import javax.xml.crypto.Data;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
@@ -56,6 +57,21 @@ public class DataRecord {
 	DataRecord(byte[] typeCodes, String[] data) {
 		this.columnDataType = typeCodes;
 		this.columnData = data;
+	}
+	
+	/**
+	 * A Constructor to be used to create new DataRecords from scripts or user input<br>
+	 * This Constructor accepts a DataType array containing the column type DataTypes and
+	 * a String array containing the column data.
+	 * @param types a DataType array containing the column type
+	 * @param data a String array containing the column data
+	 */
+	DataRecord(DataType[] types, String[] data) {
+		this.columnData = data;
+		this.columnDataType = new byte[types.length];
+		for(int i = 0; i < types.length; i++) {
+			this.columnDataType[i] = types[i].getTypeCode();
+		}
 	}
 	
 	/**
@@ -152,6 +168,8 @@ public class DataRecord {
 			}
 		}
 	}
+	
+	
 	
 	/**
 	 * *****************************

@@ -17,6 +17,7 @@ import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.shortToBytes;
  * @author Mithil Vijay
  */
 public class TableLeafCell extends DataCell {
+	
 	private static final int START_OF_LEAF_CELL_ROW_ID = 2;
 	private static final int START_OF_LEAF_CELL_PAYLOAD = 6;
 	private DataRecord payload;

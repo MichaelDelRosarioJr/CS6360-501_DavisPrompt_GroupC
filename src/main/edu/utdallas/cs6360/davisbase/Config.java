@@ -34,6 +34,10 @@ public final class Config {
 	public static final int MIN_ORDER_OF_TREE = 2;
 	
 	/**
+	 *
+	 */
+	
+	/**
 	 * Numerical constants
 	 */
 	public static final int ZERO = 0;

@@ -3,6 +3,7 @@ package edu.utdallas.cs6360.davisbase.trees;
 
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static edu.utdallas.cs6360.davisbase.Config.*;
@@ -18,8 +19,6 @@ import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.*;
 public class TableLeafPage extends Page{
 	private static final Logger LOGGER = Logger.getLogger(TableLeafPage.class.getName());
 	
-	private int nextPagePointer;
-	
 	/**
 	 * *****************************
 	 * *****************************
@@ -34,7 +33,6 @@ public class TableLeafPage extends Page{
 	 */
 	public TableLeafPage() {
 		super();
-		this.nextPagePointer = 0;
 	}
 	
 	/**
@@ -47,7 +45,6 @@ public class TableLeafPage extends Page{
 		super(pageType, pageNumber);
 		if(pageType == PageType.TABLE_LEAF_ROOT && nextPagePointer > ZERO) { throw new
 				IllegalArgumentException("Table root leaf page with non-null next page pointer"); }
-		this.nextPagePointer = nextPagePointer;
 	}
 	
 	/**
@@ -56,16 +53,8 @@ public class TableLeafPage extends Page{
 	 * @param data an array of bytes representing an entire page from a file
 	 * @param pageNumber the pageNumber as it appears in the file
 	 */
-	public TableLeafPage(byte[] data, int pageNumber) {
+	TableLeafPage(byte[] data, int pageNumber) {
 		super(data, pageNumber);
-		ByteBuffer headerBuffer = ByteBuffer.wrap(data);
-		
-		// Throw away page type, numOfCells, and startOfCellPointers since already assigned by call to super()
-		headerBuffer.getInt();
-		
-		// Get next 4 bytes from ByteBuffer,
-		// else store the 2's complement value of the 4 bytes
-		this.nextPagePointer = headerBuffer.getInt();
 	}
 	
 	/**
@@ -80,10 +69,10 @@ public class TableLeafPage extends Page{
 	/**
 	 * Adds a new TableLeafCell to the TableLeafPage and then sorts the cell offsets by rowId
 	 * @param tableLeafCell the new cell to add to the page
-	 */
+	 *//*
 	void addDataCell(TableLeafCell tableLeafCell, TableConfig tableConfig) {
 		//TODO:
-	}
+	}*/
 	
 	/**
 	 * Returns a TableLeafCell when given a rowId
@@ -258,31 +247,47 @@ public class TableLeafPage extends Page{
 	public List<Byte> getBytes() {
 		ArrayList<Byte> output = new ArrayList<>(PAGE_SIZE);
 		
-		int i = 2;
 		output.add(getPageType().getByteCode());
 		output.add(getNumOfCells());
-		for (byte b : shortToBytes(getStartOfCellPointers())) {
-			output.add(b);
-			i++;
-		}
 		
-		for (byte b : intToBytes(this.nextPagePointer)) {
-			output.add(b);
-			i++;
-		}
-		output.addAll(i, getDataCellOffsetsBytes());
-		i += 2*getNumOfCells();
+		ArrayList<Byte> dataCellOffsets = new ArrayList();
+		ArrayList<Byte> dataCellBytes = new ArrayList<>();
 		
-		
+		short dataCellOffset = (short)ZERO;
+		int dataBytesPosition = ZERO;
 		for(DataCell c: getDataCells()) {
-			ArrayList<Byte> bytes = (ArrayList<Byte>)c.getBytes();
-			for(int j = output.size() - 1; j > output.size() - 1 - bytes.size(); j--) {
-				output.add(j, bytes.get(j - output.size() + 1));
-				if(j <= i) {
-					throw new IllegalStateException("Error: Offset Array and Data Cells have met and page is full");
-				}
+			// Get the dataCell offset for this cell
+			for(byte offsetBytes : shortToBytes(dataCellOffset)) {
+				dataCellOffsets.add(offsetBytes);
 			}
+			
+			// Get the byte representation of this data cell and reverse it
+			ArrayList<Byte> bytes = (ArrayList<Byte>)c.getBytes();
+			Collections.reverse(bytes);
+			
+			// Use size of array to determine the cell offset for the next data cell
+			dataCellOffset += (short)bytes.size();
+			
+			// Add bytes to list of data cell bytes
+			dataCellBytes.addAll(bytes);
 		}
+		
+		// Store the new start of DataCell pointers
+		//setStartOfCellPointers((short)dataCellBytes.size());
+		
+		// Add to master output list
+		for (byte b : shortToBytes(getStartOfCellPointers())) {
+			LOGGER.log(Level.INFO, Byte.toString(b));
+			output.add(b);
+		}
+		
+		// Add the value of the nextPagePointer to the list
+		for (byte b : intToBytes(getNextPagePointer())) {
+			output.add(b);
+		}
+		
+		output.addAll(dataCellOffsets);
+		output.addAll(dataCellBytes);
 		return output;
 	}
 	
@@ -309,7 +314,7 @@ public class TableLeafPage extends Page{
 		// Cast to TableInteriorPage
 		TableLeafPage that = (TableLeafPage) o;
 		
-		return nextPagePointer == that.nextPagePointer && this.getPageNumber() == that.getPageNumber() &&
+		return getNextPagePointer() == that.getNextPagePointer() && this.getPageNumber() == that.getPageNumber() &&
 				this.getPageType() == that.getPageType() && this.getNumOfCells() == that.getNumOfCells() &&
 				this.getDataCells().equals(that.getDataCells());
 	}

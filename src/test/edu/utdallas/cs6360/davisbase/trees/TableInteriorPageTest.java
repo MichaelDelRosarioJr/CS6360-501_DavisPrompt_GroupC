@@ -1,8 +1,11 @@
 package edu.utdallas.cs6360.davisbase.trees;
 
 import edu.utdallas.cs6360.davisbase.utils.ByteHelpers;
+import edu.utdallas.cs6360.davisbase.utils.FileHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.logging.Logger;
 
 import static edu.utdallas.cs6360.davisbase.Config.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -15,6 +18,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Mithil Vijay
  */
 class TableInteriorPageTest {
+	private static final Logger LOGGER = Logger.getLogger(TableInteriorPageTest.class.getName());
+	
 	private TableConfig config;
 	private TableInteriorPage testPage;
 	
