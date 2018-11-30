@@ -1,5 +1,6 @@
 package edu.utdallas.cs6360.davisbase.trees;
 
+import edu.utdallas.cs6360.davisbase.Config;
 import edu.utdallas.cs6360.davisbase.utils.ByteHelpers;
 
 import java.io.IOException;
@@ -9,6 +10,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static edu.utdallas.cs6360.davisbase.Config.*;
 import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.shortToBytes;
@@ -21,6 +24,7 @@ import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.shortToBytes;
  * @author Mithil Vijay
  */
 public abstract class Page {
+	private static final Logger LOGGER = Logger.getLogger(Page.class.getName());
 	private int pageNumber;
 	private PageType pageType;
 	
@@ -40,6 +44,8 @@ public abstract class Page {
 	 *        [65536, 32769]
 	 */
 	private short startOfCellPointers;
+	
+	private int nextPagePointer;
 	
 	private ArrayList<DataCell> dataCells;
 	
@@ -95,6 +101,11 @@ public abstract class Page {
 	 */
 	Page(byte[] data, int pageNumber) {
 		// TODO Check page size here
+		// If this was rebuilt from a file such as in production we need to remove all the extra zero values from the
+		// middle of the file, otherwise we are recreating from the getBytes() method which does not add the zeros in
+		// in the middle of the file. If false it means we are testing something with getBytes before we send the bytes
+		// to the file
+		boolean rebuiltFromFile = data.length == PAGE_SIZE;
 		
 		ByteBuffer byteBuffer = ByteBuffer.wrap(data);
 		byte tmpPageType = byteBuffer.get();
@@ -104,7 +115,7 @@ public abstract class Page {
 		this.startOfCellPointers = byteBuffer.getShort();
 		
 		// Throw away extra pointer, subclasses can get it if they need it
-		byteBuffer.getInt();
+		this.nextPagePointer = byteBuffer.getInt();
 		
 		// If pageNumber = 0 then it is a root page
 		if(pageNumber != ZERO) {
@@ -114,32 +125,39 @@ public abstract class Page {
 			if (tmpType == PageType.TABLE_LEAF_PAGE) { this.pageType = PageType.TABLE_LEAF_ROOT; }
 			if (tmpType == PageType.TABLE_INTERIOR_PAGE) { this.pageType = PageType.TABLE_INTERIOR_ROOT; }
 		}
-		
-		short[] offsets = new short[this.numOfCells];
-		
-		for(int i = ZERO; i < this.numOfCells; i++) {
-			offsets[i] = byteBuffer.getShort();
-		}
-		initDataCellsFromFile(data);
+		initDataCellsFromBytes(Arrays.copyOfRange(data, PAGE_SIZE - this.startOfCellPointers,
+				PAGE_SIZE));
 	}
 	
-	private void initDataCellsFromFile(byte[] data) {
-		byte[] inOrderBytes = ByteHelpers.reverseByteArray(data);
-		int byteArrayPointer = ZERO;
-		
-		if(isLeaf()) {
-			for(int i = 0; i < numOfCells; i++) {
-				int startOfDataCell = byteArrayPointer;
-				int dataCellSize = ByteBuffer.wrap(inOrderBytes).getShort(startOfDataCell) + TABLE_LEAF_CELL_HEADER_SIZE;
-				
-				addDataCell(Arrays.copyOfRange(inOrderBytes, startOfDataCell, dataCellSize));
-				byteArrayPointer += dataCellSize;
-			}
-		} else {
-			int startOfDataCell = byteArrayPointer;
-			for(int i = 0; i < numOfCells; i++) {
-				addDataCell(Arrays.copyOfRange(inOrderBytes, startOfDataCell, TABLE_INTERIOR_CELL_SIZE));
-				startOfDataCell += TABLE_INTERIOR_CELL_SIZE;
+	/**
+	 * A helper method that strips out the data cells from the end of the page file and reverses the bytes
+	 * before returning
+	 * @param data anarray of bytes representing the data cell area within the page
+	 */
+	
+	private void initDataCellsFromBytes(byte[] data) {
+		if(this.startOfCellPointers != ZERO) {
+			// Determine the start of the DataCell area based on the array size
+			//int startOfDataCells = data.length == PAGE_SIZE ? PAGE_SIZE - this.startOfCellPointers :
+			//		data.length - this.startOfCellPointers;
+			
+			// Grab only the DataCell bytes and reverse them
+			byte[] inOrderBytes = ByteHelpers.reverseByteArray(data);
+			
+			// Keep track of our position within the array of bytes
+			int byteArrayPointer = ZERO;
+			if(isLeaf()) {
+				for(int i = 0; i < numOfCells; i++) {
+					int dataCellSize = ByteBuffer.wrap(inOrderBytes).getShort(byteArrayPointer) + TABLE_LEAF_CELL_HEADER_SIZE;
+					
+					addDataCell(Arrays.copyOfRange(inOrderBytes, byteArrayPointer, dataCellSize));
+					byteArrayPointer += dataCellSize;
+				}
+			} else {
+				for(int i = 0; i < numOfCells; i++) {
+					addDataCell(Arrays.copyOfRange(inOrderBytes, byteArrayPointer, TABLE_INTERIOR_CELL_SIZE));
+					byteArrayPointer += TABLE_INTERIOR_CELL_SIZE;
+				}
 			}
 		}
 	}
@@ -185,7 +203,28 @@ public abstract class Page {
 		if(isLeaf()) {
 			this.dataCells.add(new TableLeafCell(data));
 		} else {
+			incrementNumOfCells();
 			this.dataCells.add(new TableInteriorCell(data));
+		}
+	}
+	
+	void addDataCell(DataCell data) {
+		if(isLeaf()) {
+			if (data instanceof TableLeafCell) {
+				this.dataCells.add(data);
+				incrementNumOfCells();
+				this.startOfCellPointers += data.size();
+			} else {
+				throw new IllegalArgumentException("Error: Cannot add non-Leaf data cell to a Leaf page");
+			}
+		} else {
+			if (data instanceof  TableInteriorCell) {
+				this.dataCells.add(data);
+				incrementNumOfCells();
+				this.startOfCellPointers += TABLE_INTERIOR_CELL_SIZE;
+			} else {
+				throw new IllegalArgumentException("Error: Cannot add an Interior data cell to a Leaf page");
+			}
 		}
 	}
 	
@@ -211,6 +250,15 @@ public abstract class Page {
 	 */
 	public short getStartOfCellPointers() {
 		return startOfCellPointers;
+	}
+	
+	/**
+	 * Setter for property 'startOfCellPointers'.
+	 *
+	 * @param startOfCellPointers Value to set for property 'startOfCellPointers'.
+	 */
+	public void setStartOfCellPointers(short startOfCellPointers) {
+		this.startOfCellPointers = startOfCellPointers;
 	}
 	
 	/**
@@ -282,6 +330,24 @@ public abstract class Page {
 	 * @param pageNumber new number of the page in the file
 	 */
 	void setPageNumber(int pageNumber) { this.pageNumber = pageNumber; }
+	
+	/**
+	 * Getter for property 'nextPagePointer'.
+	 *
+	 * @return Value for property 'nextPagePointer'.
+	 */
+	public int getNextPagePointer() {
+		return nextPagePointer;
+	}
+	
+	/**
+	 * Setter for property 'nextPagePointer'.
+	 *
+	 * @param nextPagePointer Value to set for property 'nextPagePointer'.
+	 */
+	public void setNextPagePointer(int nextPagePointer) {
+		this.nextPagePointer = nextPagePointer;
+	}
 	
 	/**
 	 * Check if the page is full and needs splitting<br>
@@ -377,39 +443,89 @@ public abstract class Page {
 	/**
 	 * A method to write the update page data to the file, each subclass uses their own getBytes() method which contains
 	 * class specific instructions on how to prepare the bytes for the file
+	 *  ____ pageStartAddress = (PAGE_SIZE * pageNum)
+	 * |    |
+	 * |    |
+	 * |    |
+	 * |----|startOfFreeSpace = pageStartAddress + headerSize = pageStartAddress + 8 + 2*numOfCells
+	 * |    |
+	 * |    |
+	 * |    |
+	 * |    |
+	 * |    |
+	 * |    |
+	 * |    |
+	 * |----|startOfDataCells = startOfNextPage - startOfCellPointers
+	 * |    |
+	 * |    |
+	 * |    |
+	 * |____|
+	 * |    |startOfNextPage = pageStartAddress + PAGE_SIZE
+	 * |    |
+	 * |....|
 	 * @param treeFile the RandomAccessFile associated with the page's database file
 	 * @throws IOException is thrown when an I/O operation fails
 	 */
 	void writePage(RandomAccessFile treeFile) throws IOException {
+		// Sizes of the page segments
+		// Header + data cell offsets, the free space in the middle of the page, and the size of the data cell area
+		int headerSize = 8 + 2*this.numOfCells;
+		int freeSpaceSize = PAGE_SIZE - this.startOfCellPointers - headerSize;
+		// Data Cell Area Size = this.startOfCellPointers
+		
+		
 		// Pointers into the table file
 		// The beginning of this page and the start the next and the
 		// beginning of the data cell area at the end of the file
-		long addressPointer = ((long)this.getPageNumber() * PAGE_SIZE);
-		long startOfNextPage = addressPointer + PAGE_SIZE;
-		int startOfDataCells = (int)(startOfNextPage - this.startOfCellPointers);
+		long pageStartAddress = ((long)this.getPageNumber() * PAGE_SIZE);
+		long startOfFreeSpace = pageStartAddress + (long)headerSize;
+		long startOfNextPage = pageStartAddress + PAGE_SIZE;
+		long startOfDataCells = startOfNextPage - (long)this.startOfCellPointers;
+		
+		// Information about the writing operation that is about to take plage
+		LOGGER.log(Level.INFO, "RandomAccessFile.length(): {0}", treeFile.length());
+		LOGGER.log(Level.INFO, "Page header/offset size: {0}", headerSize);
+		LOGGER.log(Level.INFO, "Free space size: {0}", freeSpaceSize);
+		LOGGER.log(Level.INFO, "Page number: {0}", this.pageNumber);
+		LOGGER.log(Level.INFO, "Page start address: {0}", pageStartAddress);
+		LOGGER.log(Level.INFO, "Free space start address: {0}", startOfFreeSpace);
+		LOGGER.log(Level.INFO, "Start of data cells: {0}", startOfDataCells);
+		
 		
 		// Expand the file if needed
 		if(treeFile.length() < startOfNextPage) {
+			LOGGER.log(Level.INFO, "Expanding file");
 			treeFile.setLength(startOfNextPage);
 		}
 		
 		// Get page bytes and initialize pointers into the array
 		byte[] pageBytes = ByteHelpers.byteArrayListToArray(getBytes());
-		int headerSize = 8 + 2*this.numOfCells;
-		int freeSpaceSize = PAGE_SIZE - this.startOfCellPointers - headerSize;
+		LOGGER.log(Level.INFO, "pageBytes.length: {0}", pageBytes.length);
 		
 		
-		// Seek to first address of this page and
-		// write the header and data cell offset values
-		treeFile.seek(addressPointer);
+		// Seek to first address of this page and write the header and data cell offset values
+		// header+offset bytes = Arrays.copyOfRange(pageBytes, 0 , 8+2n)
+		LOGGER.log(Level.INFO, "Writing Header and Offsets of " + headerSize + " to file at address " +
+				pageStartAddress);
+		treeFile.seek(pageStartAddress);
 		treeFile.write(Arrays.copyOfRange(pageBytes, ZERO, headerSize));
 		
 		
 		// Fill the center of the file with null values
-		treeFile.write(new byte[freeSpaceSize], startOfDataCells, freeSpaceSize);
+		LOGGER.log(Level.INFO, "Writing " + freeSpaceSize + " NULL bytes to file at address " + startOfFreeSpace);
+		byte[] freeSpace = new byte[freeSpaceSize];
+		treeFile.seek(startOfFreeSpace);
+		treeFile.write(freeSpace);
+		LOGGER.log(Level.INFO, "Null Values written Successfully");
+		
 		
 		// Fill the remaining bytes in the page with the rest of the byte array
-		treeFile.write(Arrays.copyOfRange(pageBytes, headerSize, this.startOfCellPointers));
+		if(headerSize + freeSpaceSize < PAGE_SIZE) {
+			LOGGER.log(Level.INFO, "Page not empty, writing data remaining " + this.startOfCellPointers + " bytes " +
+					"containing the data cells to the file");
+			treeFile.seek(startOfDataCells);
+			treeFile.write(Arrays.copyOfRange(pageBytes, pageBytes.length - this.startOfCellPointers, pageBytes.length));
+		}
 	}
 	
 	/**
