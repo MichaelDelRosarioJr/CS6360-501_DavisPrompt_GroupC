@@ -365,8 +365,6 @@ public class DavisBase {
             //tableTree.insert(,colValues);
         }
 
-        //tableTree.insert();
-
     }
 
 
@@ -1086,7 +1084,7 @@ public class DavisBase {
     /**
      * Get column names create query
      * @param tokens query tokens
-     * @return map of column name to column type
+     * @return array of column names
      */
     private static String[] getColumnNamesFromCreateQuery(ArrayList<String> tokens){
         ArrayList<String> columns = new ArrayList<>();
