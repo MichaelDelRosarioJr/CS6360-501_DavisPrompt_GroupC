@@ -1061,27 +1061,47 @@ public class DavisBase {
         return command;
     }
 
-//    /**
-//     * Get column name to column type map from create query
-//     * @param tokens query tokens
-//     * @return map of column name to column type
-//     */
-//    private static HashMap<String, String> getColumnNameTypeMap(ArrayList<String> tokens){
-//        // using linked map to preserve order of column names
-//        LinkedHashMap<String, String> map = new LinkedHashMap<>();
-//
-//        // start from 4 as column names start from index 4 in tokens list
-//        for(int i = 4; i < tokens.size() - 2; i++){
-//            // add token which is after comma as column name and after that it's column type
-//            if(tokens.get(i).contains(",")){
-//                map.put(tokens.get(i+1), tokens.get(i+2));
-//            }
-//            else if( i == 4){
-//                map.put(tokens.get(i), tokens.get(i+1));
-//            }
-//        }
-//        return map;
-//    }
+    /**
+     * Get column name to column type map from create query
+     * @param tokens query tokens
+     * @return map of column name to column type
+     */
+    private static HashMap<String, String> getColumnNameTypeMap(ArrayList<String> tokens){
+        // using linked map to preserve order of column names
+        LinkedHashMap<String, String> map = new LinkedHashMap<>();
+
+        // start from 4 as column names start from index 4 in tokens list
+        for(int i = 4; i < tokens.size() - 2; i++){
+            // add token which is after comma as column name and after that it's column type
+            if(tokens.get(i).contains(",")){
+                map.put(tokens.get(i+1), tokens.get(i+2));
+            }
+            else if( i == 4){
+                map.put(tokens.get(i), tokens.get(i+1));
+            }
+        }
+        return map;
+    }
+
+    /**
+     * Get column names create query
+     * @param tokens query tokens
+     * @return map of column name to column type
+     */
+    private static String[] getColumnNamesFromCreateQuery(ArrayList<String> tokens){
+        ArrayList<String> columns = new ArrayList<>();
+        // start from 4 as column names start from index 4 in tokens list
+        for(int i = 4; i < tokens.size() - 2; i++){
+            // add token which is after comma as column name and after that it's column type
+            if(tokens.get(i).contains(",")){
+                columns.add(tokens.get(i+1));
+            }
+            else if( i == 4){
+                columns.add(tokens.get(i));
+            }
+        }
+        return columns.toArray(new String[columns.size()]);
+    }
 
     /**
      * Get column datatypes from create query
