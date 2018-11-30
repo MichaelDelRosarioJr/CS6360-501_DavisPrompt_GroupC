@@ -314,7 +314,7 @@ public class TableLeafPage extends Page{
 		// Cast to TableInteriorPage
 		TableLeafPage that = (TableLeafPage) o;
 		
-		return getNextPagePointer() == that.getNextPagePointer() && this.getPageNumber() == that.getPageNumber() &&
+		return this.getNextPagePointer() == that.getNextPagePointer() && this.getPageNumber() == that.getPageNumber() &&
 				this.getPageType() == that.getPageType() && this.getNumOfCells() == that.getNumOfCells() &&
 				this.getDataCells().equals(that.getDataCells());
 	}
