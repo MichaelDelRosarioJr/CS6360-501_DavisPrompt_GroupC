@@ -357,7 +357,44 @@ public class DavisBase {
         if (checkInsert(insertString)) {
             System.out.println("\tParsing the string:\"" + insertString + "\"");
         }
+        ArrayList<String> tokens = cleanCommand(insertString);
+        String tablename =  tokens.get(2);
+        TableTree tableTree = new TableTree(tablename, DatabaseType.USER);
+        ArrayList<String[]> rows = getRowsFromInsertQuery(tokens);
+        for(String[] colValues : rows){
+            //tableTree.insert(,colValues);
+        }
 
+        //tableTree.insert();
+
+    }
+
+
+    /**
+     * This function will give rows/column values to insert from insert query
+     * @param tokens clean command tokens
+     * @return ArrayList<String[]> which contains multiple rows t insert
+     */
+    private static ArrayList<String[]> getRowsFromInsertQuery(ArrayList<String> tokens) {
+        int i = tokens.indexOf("values");
+        boolean start = false;
+        ArrayList<String[]> rows = new ArrayList<>();
+        ArrayList<String> row = new ArrayList<>();
+        for(; i < tokens.size(); i++) {
+            if(tokens.get(i).equals("(")){
+                start = true;
+                row.clear();
+            }
+            else if(tokens.get(i).equals(")")){
+                start = false;
+                rows.add(row.toArray(new String[row.size()]));
+                row.clear();
+            }
+            else if(!tokens.get(i).equals(",") && start){
+                row.add(tokens.get(i));
+            }
+        }
+        return rows;
     }
 
     /**
