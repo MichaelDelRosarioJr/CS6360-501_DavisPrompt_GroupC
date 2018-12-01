@@ -249,14 +249,38 @@ public class DavisBase {
      * @param queryString is a String of the user input
      */
     private static void parseQuery(String queryString) {
-        System.out.println("STUB: This is the parseQuery method");
+        //System.out.println("STUB: This is the parseQuery method");
     	
         if (checkQuery(queryString)) {
         	ArrayList<String> tokens = cleanCommand(queryString);
         	System.out.println(tokens.get(3));
         	if(FileHandler.findTable(tokens.get(3)))
         	{
-        		System.out.println("\tParsing the string:\"" + queryString + "\"");
+        		//System.out.println("\tParsing the string:\"" + queryString + "\"");
+        		
+        		//TEST: Create a dummy select fields to test printTable
+				String[] colName = {"name", "age"};
+				String[][] data = {{"michael del rosario", "23"}, {"matt villarreal", "22"}, {"cory krol", "21"}, {"mithl", "23"}};
+
+				//TODO: Finish Select method with tables
+//        		try 
+//        		{
+//					TableTree tree = new TableTree(tokens.get(3));
+//					
+//										
+//					//TODO: create a function that will get all columns in the select statement.
+//					//Get column names
+//					
+//					//TODO: create a function that will store the WHERE statement
+//					
+//					
+//				} catch (IOException e) {
+//					
+//					e.printStackTrace();
+//				}
+        		
+        		//Print Table
+				printTable(colName, data);
         	}
         }
     }
@@ -324,6 +348,7 @@ public class DavisBase {
                     TableTree metaDataColumns = new TableTree("davisbase_columns", DatabaseType.CATALOG);
                     
                     
+                    
                     /*  Code to insert a row in the davisbase_tables table
                      *  i.e. database catalog meta-data
                      */
@@ -340,15 +365,19 @@ public class DavisBase {
                      *  for each column in the new table
                      *  i.e. database catalog meta-data
                      */
+                    
                   //Insert Column rows into davisbase_columns.tbl
                     /*
-                    DataType[] columnDataTypeArray = getColumnArray(colTypes);
+                   	DataType[] columnDataTypeArray = getColumnArray(colTypes);
                     String[] columnNames = getColumnNamesFromCreateQuery(tokens);
+                    int[] ordinalPositionArray = getOrdinalPositionArray(colTypes);
+                    String[] isColumnNullableArray = getIsColumnsNullableFromCreateQuery(tokens);
+                    
                     for(int i = 0; i < columnNames.length; i++)
                     {
-                    	String[] colName = {tokens.get(2), columnNames[i], DataType.getDataTypeString(columnDataTypeArray[i]), "0", "TRUE"};
+                    	String[] columns = {tokens.get(2), columnNames[i], DataType.getDataTypeString(columnDataTypeArray[i]), ordinalPositionArray.toString(), isColumnNullableArray[i]};
                     	DataType[] dt = {DataType.TEXT_TYPE_CODE, DataType.TEXT_TYPE_CODE, DataType.TEXT_TYPE_CODE, DataType.TINY_INT_TYPE_CODE, DataType.TEXT_TYPE_CODE,};
-                    	metaDataColumns.insert(0, dt, colName);
+                    	//metaDataColumns.insert(0, dt, columns);
                     	
                 	}
                 	*/
@@ -1099,6 +1128,11 @@ public class DavisBase {
                 columns.add(tokens.get(i));
             }
         }
+        //Test see Array
+//        for(int i = 0; i < columns.size();i++)
+//        {
+//        	System.out.println(columns.get(i));
+//        }
         return columns.toArray(new String[columns.size()]);
     }
 
@@ -1121,6 +1155,12 @@ public class DavisBase {
                 dataTypeArrayList.add(DataType.getDataTypeCodeFromString(tokens.get(i+1)));
             }
         }
+        //Test see Array
+        for(int i = 0; i < dataTypeArrayList.size();i++)
+        {
+        	System.out.println(dataTypeArrayList.get(i));
+        }
+        
         return dataTypeArrayList.toArray(new DataType[dataTypeArrayList.size()]);
     }
     
@@ -1134,6 +1174,88 @@ public class DavisBase {
     	
     	 return columnArrayList.toArray(new DataType[columnArrayList.size()]);
     }
+    
+    private static int[] getOrdinalPositionArray(DataType[] data){
+    	int[] ordArray = new int[data.length];
+    	
+    	for(int i = 0; i < data.length; i++)
+    	{
+    		ordArray[i] = i;
+    		
+    		//Test see Array;
+    		//System.out.println(ordArray[i]);
+    	}
+    	
+    	
+    	
+    	return ordArray;
+    }
+    
+    /**
+     * Method to get String array of columns which are nullable or not from create query
+     * @param tokens
+     * @return String[] of "true"/"false"
+     */
+    private static String[] getIsColumnsNullableFromCreateQuery(ArrayList<String> tokens){
+        ArrayList<String> columns = new ArrayList<>();
+        // start from 4 as column names start from index 4 in tokens list
+        StringBuilder s = new StringBuilder();
+        for(int i = 4; i < tokens.size(); i++){
+            if(tokens.get(i).equals(",") || tokens.get(i).equals(")")){
+                if(s.toString().contains("not null") || s.toString().contains("primary key")){
+                	//TEST: See what attribute is not nullable.
+                	//System.out.println(s.toString() + " is not nullable.");
+                    columns.add("false");
+                }
+                else{
+                	
+                    columns.add("true");
+                }
+                s.setLength(0);
+            }
+            else {
+                s.append(tokens.get(i));
+                s.append(" ");
+            }
 
+        }
+        return columns.toArray(new String[columns.size()]);
+    }
 
+    /**
+     * Method to Print a table using a string array for column names and a 2D string array data
+     * @param colName, data
+     */
+    private static void printTable(String[] colName, String[][] data)
+    {
+    	//This int values determine how many lines needs to be printed for the dividing line
+    	int colNameArraySize = colName.length;
+    	
+    	
+    	//Print out all Column Names
+    	for(int i = 0; i < colName.length; i++)
+    	{
+    		System.out.print(colName[i] + "\t");
+    		colNameArraySize += 7;//Add extra size for tab
+    		
+    		//Print a newLine at the last column
+    		if(i + 1 == colName.length)
+    			System.out.print("\n");
+    	}
+    	
+    	//Print a dividing line
+    	for(int i = colNameArraySize; i > 0; i--)
+    		System.out.print("-");
+    	System.out.print("\n");
+    	
+    	//Print data
+    	for(int i = 0; i < data.length; i++)
+    	{
+    		for(int j = 0; j < data[i].length;j++)
+    		{
+    			System.out.print(data[i][j] + "\t");
+    		}
+    		System.out.print("\n");
+    	}
+    }
 }
