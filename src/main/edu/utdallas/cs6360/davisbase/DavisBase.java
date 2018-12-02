@@ -1,7 +1,10 @@
 package edu.utdallas.cs6360.davisbase;
 
+import edu.utdallas.cs6360.davisbase.trees.DataType;
+import edu.utdallas.cs6360.davisbase.trees.TableTree;
 import edu.utdallas.cs6360.davisbase.utils.FileHandler;
 
+import java.io.IOException;
 import java.util.*;
 
 import static edu.utdallas.cs6360.davisbase.Config.*;
@@ -290,13 +293,20 @@ public class DavisBase {
             ArrayList<String> tokens = cleanCommand(createTableString);
             /** example create table table_name .....
              * so the token at second position is table name */
-            if (!FileHandler.createTable(tokens.get(2))) {
-                System.out.println("OOPS! Table " + tokens.get(2) + " already exists");
-            } else {
-                HashMap<String, String> columnNameTypeMap = getColumnNameTypeMap(tokens);
+//            if (!FileHandler.createTable(tokens.get(2))) {
+//                System.out.println("OOPS! Table " + tokens.get(2) + " already exists");
+//            } else {
+                DataType[] colTypes = getColTypes(tokens);
+                String[] isNull = getIsColumnsNullableFromCreateQuery(tokens);
+                String tablename = tokens.get(2);
+                try {
+                    TableTree tableTree = new TableTree(tablename, colTypes);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
 //                System.out.println(columnNameTypeMap);
                 System.out.println("SUCCESS! Creating table");
-            }
+            //}
         }
 
 //		/* Define table file name */
@@ -348,7 +358,42 @@ public class DavisBase {
         if (checkInsert(insertString)) {
             System.out.println("\tParsing the string:\"" + insertString + "\"");
         }
+        ArrayList<String> tokens = cleanCommand(insertString);
+        String tablename =  tokens.get(2);
+        TableTree tableTree = new TableTree(tablename, DatabaseType.USER);
+        ArrayList<String[]> rows = getRowsFromInsertQuery(tokens);
+        for(String[] colValues : rows){
+            //tableTree.insert(,colValues);
+        }
 
+    }
+
+
+    /**
+     * This function will give rows/column values to insert from insert query
+     * @param tokens clean command tokens
+     * @return ArrayList<String[]> which contains multiple rows t insert
+     */
+    private static ArrayList<String[]> getRowsFromInsertQuery(ArrayList<String> tokens) {
+        int i = tokens.indexOf("values");
+        boolean start = false;
+        ArrayList<String[]> rows = new ArrayList<>();
+        ArrayList<String> row = new ArrayList<>();
+        for(; i < tokens.size(); i++) {
+            if(tokens.get(i).equals("(")){
+                start = true;
+                row.clear();
+            }
+            else if(tokens.get(i).equals(")")){
+                start = false;
+                rows.add(row.toArray(new String[row.size()]));
+                row.clear();
+            }
+            else if(!tokens.get(i).equals(",") && start){
+                row.add(tokens.get(i));
+            }
+        }
+        return rows;
     }
 
     /**
@@ -1036,5 +1081,76 @@ public class DavisBase {
         }
         return map;
     }
+
+    /**
+     * Get column names create query
+     * @param tokens query tokens
+     * @return array of column names
+     */
+    private static String[] getColumnNamesFromCreateQuery(ArrayList<String> tokens){
+        ArrayList<String> columns = new ArrayList<>();
+        // start from 4 as column names start from index 4 in tokens list
+        for(int i = 4; i < tokens.size() - 2; i++){
+            // add token which is after comma as column name
+            if(tokens.get(i).contains(",")){
+                columns.add(tokens.get(i+1));
+            }
+            else if( i == 4){
+                columns.add(tokens.get(i));
+            }
+        }
+        return columns.toArray(new String[columns.size()]);
+    }
+
+    /**
+     * Get column datatypes from create query
+     * @param tokens query tokens
+     * @return DataType array
+     */
+    private static DataType[] getColTypes(ArrayList<String> tokens){
+
+        ArrayList<DataType> dataTypeArrayList = new ArrayList<>();
+
+        // start from 4 as column names start from index 4 in tokens list
+        for(int i = 4; i < tokens.size() - 2; i++){
+            // add token which is after comma as column name and after that it's column type
+            if(tokens.get(i).contains(",")){
+                dataTypeArrayList.add(DataType.getDataTypeCodeFromString(tokens.get(i+2)));
+            }
+            else if( i == 4){
+                dataTypeArrayList.add(DataType.getDataTypeCodeFromString(tokens.get(i+1)));
+            }
+        }
+        return dataTypeArrayList.toArray(new DataType[dataTypeArrayList.size()]);
+    }
+
+    /**
+     * Method to get String array of columns which are nullable or not from create query
+     * @param tokens
+     * @return String[] of "true"/"false"
+     */
+    private static String[] getIsColumnsNullableFromCreateQuery(ArrayList<String> tokens){
+        ArrayList<String> columns = new ArrayList<>();
+        // start from 4 as column names start from index 4 in tokens list
+        StringBuilder s = new StringBuilder();
+        for(int i = 4; i < tokens.size(); i++){
+            if(tokens.get(i).equals(",") || tokens.get(i).equals(")")){
+                if(s.toString().contains("not null") || s.toString().contains("primary key")){
+                    columns.add("false");
+                }
+                else{
+                    columns.add("true");
+                }
+                s.setLength(0);
+            }
+            else {
+                s.append(tokens.get(i));
+                s.append(" ");
+            }
+
+        }
+        return columns.toArray(new String[columns.size()]);
+    }
+
 
 }

@@ -87,4 +87,29 @@ public enum DataType {
 		}
 		throw new IllegalArgumentException("Invaild data type byte code");
 	}
+
+	public static DataType getDataTypeCodeFromString(String datatype) {
+		switch (datatype) {
+			case "int":
+				return INT_TYPE_CODE;
+			case "tinyint":
+				return TINY_INT_TYPE_CODE;
+			case "smallint":
+				return SHORT_TYPE_CODE;
+			case "bigint":
+				return LONG_TYPE_CODE;
+			case "real":
+				return FLOAT_TYPE_CODE;
+			case "double":
+				return DOUBLE_TYPE_CODE;
+			case "datetime":
+				return DATETIME_TYPE_CODE;
+			case "date":
+				return DATE_TYPE_CODE;
+			case "text":
+				return TEXT_TYPE_CODE;
+			default:
+				return NULL1_TYPE_CODE;
+		}
+	}
 }
