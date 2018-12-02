@@ -103,7 +103,7 @@ public class TableConfig {
 	 *
 	 * @return Value for property 'hasTextColumns'.
 	 */
-	public boolean isHasTextColumns() {
+	public boolean hasTextColumns() {
 		return hasTextColumns;
 	}
 	

@@ -103,4 +103,17 @@ public final class ByteHelpers {
 		}
 		return data;
 	}
+	
+	/**
+	 * Mostly used for debugging and logging purposes
+	 * @param bytes an array of bytes to convert into a hexadecimal string
+	 * @return a String in hexadecimal notation representing the array of bytes
+	 */
+	public static String getHexString(byte[] bytes) {
+		StringBuilder builder = new StringBuilder();
+		for (byte b : bytes) {
+			builder.append(String.format("%02X ", b));
+		}
+		return builder.toString();
+	}
 }

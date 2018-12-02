@@ -40,6 +40,7 @@ public final class Config {
 	/**
 	 * Numerical constants
 	 */
+	public static final byte NULL_BYTE = 0;
 	public static final int ZERO = 0;
 	public static final int ONE = 1;
 	public static final int TWO = 2;

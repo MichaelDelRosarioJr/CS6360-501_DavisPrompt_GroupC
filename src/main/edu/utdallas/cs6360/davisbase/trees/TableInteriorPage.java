@@ -42,7 +42,7 @@ public class TableInteriorPage extends Page{
 	 */
 	public TableInteriorPage(PageType pageType, int pageNumber) {
 		super(pageType, pageNumber);
-		this.nextPagePointer = -1;
+		this.nextPagePointer = ZERO;
 	}
 	
 	/**
@@ -82,43 +82,6 @@ public class TableInteriorPage extends Page{
 	 * *****************************
 	 * *****************************
 	 */
-	/**
-	 * A method to return the byte array containing
-	 * DataRecord formatted into the specified format
-	 * @return a byte array containing the correctly formatted data
-	 */
-	@Override
-	public List<Byte> getBytes() {
-		ArrayList<Byte> output = new ArrayList<>(PAGE_SIZE);
-		
-		int i = 2;
-		output.add(getPageType().getByteCode());
-		output.add(getNumOfCells());
-		
-		for (byte b : shortToBytes(this.getStartOfCellPointers())) {
-			output.add(b);
-			i++;
-		}
-		
-		for (byte b : intToBytes(this.nextPagePointer)) {
-			output.add(b);
-			i++;
-		}
-		output.addAll(i, getDataCellOffsetsBytes());
-		
-		i += 2*getNumOfCells();
-		
-		for(DataCell c: getDataCells()) {
-			ArrayList<Byte> bytes = (ArrayList<Byte>)c.getBytes();
-			for(int j = output.size() - 1; j > output.size() - 1 - TABLE_INTERIOR_CELL_SIZE; j--) {
-				output.add(j, bytes.get(j - output.size() + 1));
-				if(j <= i) {
-					throw new IllegalArgumentException("Error: Offset Array and Data Cells have met and page is full");
-				}
-			}
-		}
-		return output;
-	}
 	
 	/**
 	 * Method that creates a new interior cell when given a page of bytes and an offset to load from
@@ -177,6 +140,20 @@ public class TableInteriorPage extends Page{
 		sort();
 		// Else all are contiguous and we fill in the next free slot
 		return getNumOfCells();
+	}
+	
+	/**
+	 * This method calculates and returns the number bytes taken up by the DataCell storage area within the page.<br>
+	 *
+	 * This is method is mainly used as a last resort if that mistakenly not saved, not calculated, or not set for some
+	 * other reason.<br>
+	 *
+	 * For TableInteriorPages since all cells are 8 bytes we simply return TABLE_INTERIOR_CELL_SIZE * numOfCells
+	 * @return the number of bytes taken up by the DataCell storage area
+	 */
+	short getSizeOfDataCells() {
+		return (short)(getNumOfCells() * TABLE_INTERIOR_CELL_SIZE);
+		
 	}
 	
 	/**

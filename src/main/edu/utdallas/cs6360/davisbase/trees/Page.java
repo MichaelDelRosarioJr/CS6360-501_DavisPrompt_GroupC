@@ -1,6 +1,5 @@
 package edu.utdallas.cs6360.davisbase.trees;
 
-import edu.utdallas.cs6360.davisbase.Config;
 import edu.utdallas.cs6360.davisbase.utils.ByteHelpers;
 
 import java.io.IOException;
@@ -14,7 +13,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static edu.utdallas.cs6360.davisbase.Config.*;
-import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.shortToBytes;
+import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.*;
 
 /**
  * Abstract class containing common tasks associated with managing pages and their data cells
@@ -101,20 +100,15 @@ public abstract class Page {
 	 */
 	Page(byte[] data, int pageNumber) {
 		// TODO Check page size here
-		// If this was rebuilt from a file such as in production we need to remove all the extra zero values from the
-		// middle of the file, otherwise we are recreating from the getBytes() method which does not add the zeros in
-		// in the middle of the file. If false it means we are testing something with getBytes before we send the bytes
-		// to the file
-		boolean rebuiltFromFile = data.length == PAGE_SIZE;
 		
 		ByteBuffer byteBuffer = ByteBuffer.wrap(data);
 		byte tmpPageType = byteBuffer.get();
 		
 		this.dataCells = new ArrayList<>();
-		this.numOfCells = byteBuffer.get();
-		this.startOfCellPointers = byteBuffer.getShort();
+		int numCells = byteBuffer.get();
+		short startOfDataCellPointers = byteBuffer.getShort();
 		
-		// Throw away extra pointer, subclasses can get it if they need it
+		// Store next page pointer, if Index Leaf page the value will be 0
 		this.nextPagePointer = byteBuffer.getInt();
 		
 		// If pageNumber = 0 then it is a root page
@@ -125,8 +119,9 @@ public abstract class Page {
 			if (tmpType == PageType.TABLE_LEAF_PAGE) { this.pageType = PageType.TABLE_LEAF_ROOT; }
 			if (tmpType == PageType.TABLE_INTERIOR_PAGE) { this.pageType = PageType.TABLE_INTERIOR_ROOT; }
 		}
-		initDataCellsFromBytes(Arrays.copyOfRange(data, PAGE_SIZE - this.startOfCellPointers,
-				PAGE_SIZE));
+		
+		initDataCellsFromBytes(Arrays.copyOfRange(data, data.length - startOfDataCellPointers, data.length),
+				numCells, startOfDataCellPointers);
 	}
 	
 	/**
@@ -135,12 +130,8 @@ public abstract class Page {
 	 * @param data anarray of bytes representing the data cell area within the page
 	 */
 	
-	private void initDataCellsFromBytes(byte[] data) {
-		if(this.startOfCellPointers != ZERO) {
-			// Determine the start of the DataCell area based on the array size
-			//int startOfDataCells = data.length == PAGE_SIZE ? PAGE_SIZE - this.startOfCellPointers :
-			//		data.length - this.startOfCellPointers;
-			
+	private void initDataCellsFromBytes(byte[] data, int numOfCells, int startOfCellPointers) {
+		if(startOfCellPointers != ZERO) {
 			// Grab only the DataCell bytes and reverse them
 			byte[] inOrderBytes = ByteHelpers.reverseByteArray(data);
 			
@@ -150,12 +141,13 @@ public abstract class Page {
 				for(int i = 0; i < numOfCells; i++) {
 					int dataCellSize = ByteBuffer.wrap(inOrderBytes).getShort(byteArrayPointer) + TABLE_LEAF_CELL_HEADER_SIZE;
 					
-					addDataCell(Arrays.copyOfRange(inOrderBytes, byteArrayPointer, dataCellSize));
+					addDataCell(Arrays.copyOfRange(inOrderBytes, byteArrayPointer, byteArrayPointer + dataCellSize));
 					byteArrayPointer += dataCellSize;
 				}
 			} else {
 				for(int i = 0; i < numOfCells; i++) {
-					addDataCell(Arrays.copyOfRange(inOrderBytes, byteArrayPointer, TABLE_INTERIOR_CELL_SIZE));
+					addDataCell(Arrays.copyOfRange(inOrderBytes, byteArrayPointer, TABLE_INTERIOR_CELL_SIZE +
+							byteArrayPointer));
 					byteArrayPointer += TABLE_INTERIOR_CELL_SIZE;
 				}
 			}
@@ -168,22 +160,6 @@ public abstract class Page {
 	void sortDataCellsByOffset() {
 		this.dataCells.sort((o1, o2) -> o1.getPageOffset() - o2.getPageOffset());
 	}
-	
-	/**
-	 * Retrieves and recreates DataCells from the page file with the offsets
-	 * @param data an array of bytes that make up a page
-	 * @param offsets the location from the end of the page where the cells are located
-	 * @return an ArrayList of DataCell objects
-	 */
-	/* TODO: REMOVE AFTER TESTING writePage() and updated byte constructor
-	private ArrayList<DataCell> getDataCellsFromFileData(byte[] data, short[] offsets) {
-		ArrayList<DataCell> tmpDataCells = new ArrayList<>();
-		
-		for (short s : offsets) {
-			tmpDataCells.add(getDataCellAtOffsetInFile(data, s));
-		}
-		return tmpDataCells;
-	}*/
 	
 	/**
 	 * *****************************
@@ -202,6 +178,7 @@ public abstract class Page {
 	private void addDataCell(byte[] data) {
 		if(isLeaf()) {
 			this.dataCells.add(new TableLeafCell(data));
+			incrementNumOfCells();
 		} else {
 			incrementNumOfCells();
 			this.dataCells.add(new TableInteriorCell(data));
@@ -242,15 +219,6 @@ public abstract class Page {
 	 * @return the type of the page
 	 */
 	PageType getPageType() { return this.pageType; }
-	
-	/**
-	 * Getter for property 'startOfCellPointers'.
-	 *
-	 * @return Value for property 'startOfCellPointers'.
-	 */
-	public short getStartOfCellPointers() {
-		return startOfCellPointers;
-	}
 	
 	/**
 	 * Setter for property 'startOfCellPointers'.
@@ -467,26 +435,34 @@ public abstract class Page {
 	 * @throws IOException is thrown when an I/O operation fails
 	 */
 	void writePage(RandomAccessFile treeFile) throws IOException {
-		// Sizes of the page segments
-		// Header + data cell offsets, the free space in the middle of the page, and the size of the data cell area
-		int headerSize = 8 + 2*this.numOfCells;
-		int freeSpaceSize = PAGE_SIZE - this.startOfCellPointers - headerSize;
-		// Data Cell Area Size = this.startOfCellPointers
-		
+		// Get the bytes to write to file
+		byte[] pageBytes = byteArrayListToArray(getBytes());
+		if(this.startOfCellPointers == -ONE) {
+			this.startOfCellPointers = getSizeOfDataCells();
+		}
 		
 		// Pointers into the table file
 		// The beginning of this page and the start the next and the
 		// beginning of the data cell area at the end of the file
 		long pageStartAddress = ((long)this.getPageNumber() * PAGE_SIZE);
-		long startOfFreeSpace = pageStartAddress + (long)headerSize;
 		long startOfNextPage = pageStartAddress + PAGE_SIZE;
+		
+		// The remaining values are calculated for logging purposes
+		// Sizes of the page segments
+		// Header + data cell offsets, the free space in the middle of the page, and the size of the data cell area
+		int headerSize = PAGE_HEADER_SIZE + (Short.BYTES * this.numOfCells);
+		
+		// Data Cell Area Size = this.startOfCellPointers
+		int freeSpaceSize = PAGE_SIZE - this.startOfCellPointers - headerSize;
+		
+		long startOfFreeSpace = pageStartAddress + headerSize;
 		long startOfDataCells = startOfNextPage - (long)this.startOfCellPointers;
 		
-		// Information about the writing operation that is about to take plage
+		// Information about the writing operation that is about to take place
+		LOGGER.log(Level.INFO, "Page number: {0}", this.pageNumber);
 		LOGGER.log(Level.INFO, "RandomAccessFile.length(): {0}", treeFile.length());
 		LOGGER.log(Level.INFO, "Page header/offset size: {0}", headerSize);
 		LOGGER.log(Level.INFO, "Free space size: {0}", freeSpaceSize);
-		LOGGER.log(Level.INFO, "Page number: {0}", this.pageNumber);
 		LOGGER.log(Level.INFO, "Page start address: {0}", pageStartAddress);
 		LOGGER.log(Level.INFO, "Free space start address: {0}", startOfFreeSpace);
 		LOGGER.log(Level.INFO, "Start of data cells: {0}", startOfDataCells);
@@ -498,34 +474,8 @@ public abstract class Page {
 			treeFile.setLength(startOfNextPage);
 		}
 		
-		// Get page bytes and initialize pointers into the array
-		byte[] pageBytes = ByteHelpers.byteArrayListToArray(getBytes());
-		LOGGER.log(Level.INFO, "pageBytes.length: {0}", pageBytes.length);
-		
-		
-		// Seek to first address of this page and write the header and data cell offset values
-		// header+offset bytes = Arrays.copyOfRange(pageBytes, 0 , 8+2n)
-		LOGGER.log(Level.INFO, "Writing Header and Offsets of " + headerSize + " to file at address " +
-				pageStartAddress);
 		treeFile.seek(pageStartAddress);
-		treeFile.write(Arrays.copyOfRange(pageBytes, ZERO, headerSize));
-		
-		
-		// Fill the center of the file with null values
-		LOGGER.log(Level.INFO, "Writing " + freeSpaceSize + " NULL bytes to file at address " + startOfFreeSpace);
-		byte[] freeSpace = new byte[freeSpaceSize];
-		treeFile.seek(startOfFreeSpace);
-		treeFile.write(freeSpace);
-		LOGGER.log(Level.INFO, "Null Values written Successfully");
-		
-		
-		// Fill the remaining bytes in the page with the rest of the byte array
-		if(headerSize + freeSpaceSize < PAGE_SIZE) {
-			LOGGER.log(Level.INFO, "Page not empty, writing data remaining " + this.startOfCellPointers + " bytes " +
-					"containing the data cells to the file");
-			treeFile.seek(startOfDataCells);
-			treeFile.write(Arrays.copyOfRange(pageBytes, pageBytes.length - this.startOfCellPointers, pageBytes.length));
-		}
+		treeFile.write(pageBytes);
 	}
 	
 	/**
@@ -537,12 +487,90 @@ public abstract class Page {
 	 * *****************************
 	 * *****************************
 	 */
+	
 	/**
-	 * Abstract method all subclasses must implement that contains instructions for outputting itself to an array of
-	 * bytes to store itself on disk
+	 * A method to return the ArrayList containing DataRecord formatted in bytes to the specified format to
+	 * store into the table/index file. <br>
+	 *
+	 * The format being: [pageHeader, dataCellOffsets, freeSpace, reversedDataCells]<br>
+	 *
+	 * Originally function does not add the freeSpace cells between the dataCellOffsets, but to simplify the decision
+	 * was made to include the the NULL bytes in the center. Thus this method will output an ArrayList that is always
+	 * side PAGE_SIZE. This can be done for error checking purposes
+	 *
+	 * TODO: if time, switch to array
 	 * @return an ArrayList containing the bytes that make up the page
 	 */
-	public abstract List<Byte> getBytes();
+	public List<Byte> getBytes() {
+		ArrayList<Byte> output = new ArrayList<>(PAGE_SIZE);
+		
+		// Store the first 2 bytes of the header the page type and number of data cells
+		output.add(getPageType().getByteCode());
+		output.add(getNumOfCells());
+		
+		// Placeholders for the dataCellOffsets and the dataCellBytes that need to be reversed
+		ArrayList<Byte> dataCellOffsets = new ArrayList<>();
+		ArrayList<Byte> dataCellBytes = new ArrayList<>();
+		
+		// Initialize the first offset to 0, this is also going to count the total bytes taken up by the data cells.
+		// 2 birds 1 for loop
+		short dataCellOffset = (short)ZERO;
+		
+		for(DataCell c: getDataCells()) {
+			// Get the offset for this data cell
+			for(byte offsetBytes : shortToBytes(dataCellOffset)) {
+				dataCellOffsets.add(offsetBytes);
+			}
+			
+			// Get the byte representation of this data cell
+			ArrayList<Byte> bytes = (ArrayList<Byte>)c.getBytes();
+			
+			// Use size of array to determine the cell offset for the next data cell
+			dataCellOffset += (short)bytes.size();
+			
+			// Add bytes to list of data cell bytes
+			dataCellBytes.addAll(bytes);
+		}
+		
+		// Save the startOfCellPointers for the writePage method to use
+		this.startOfCellPointers = dataCellOffset;
+		
+		
+		// Add to master output list
+		for (byte b : shortToBytes(this.startOfCellPointers)) {
+			output.add(b);
+		}
+		
+		// Add the value of the nextPagePointer to the list
+		for (byte b : intToBytes(getNextPagePointer())) {
+			output.add(b);
+		}
+		
+		// Append the 2*n offset array after the header
+		output.addAll(dataCellOffsets);
+		
+		// Fill the free space with NULL values
+		for(int i = output.size(); i < PAGE_SIZE - this.startOfCellPointers; i++) {
+			output.add(NULL_BYTE);
+		}
+		
+		// Reverse the data cell bytes and add them to the en of the array
+		Collections.reverse(dataCellBytes);
+		output.addAll(dataCellBytes);
+		
+		return output;
+	}
+	
+	/**
+	 * Abstract method that all subclasses should implement that returns the number of bytes taken up by the data cells.
+	 * This value should already be calculated when preparing the page to be written to the file.<br>
+	 *
+	 * This is method is mainly used as a last resort if that mistakenly not saved, not calculated, or not set for some
+	 * other reason.<br>
+	 *
+	 * @return the number of bytes taken up by the DataCell storage area
+	 */
+	abstract short getSizeOfDataCells();
 	
 	/**
 	 * Abstract method all subclasses must implement that when given an array of bytes making up a page and an offset

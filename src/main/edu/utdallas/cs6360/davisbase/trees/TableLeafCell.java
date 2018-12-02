@@ -143,6 +143,7 @@ public class TableLeafCell extends DataCell {
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) return true;
+		
 		if (!Optional.ofNullable(o).isPresent()) { return false; }
 		
 		// If object is not DataRecord return false

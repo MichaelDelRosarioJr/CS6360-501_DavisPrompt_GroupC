@@ -2,6 +2,7 @@ package edu.utdallas.cs6360.davisbase.trees;
 
 import edu.utdallas.cs6360.davisbase.utils.ByteHelpers;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,6 +37,7 @@ class TableLeafCellTest {
 	}
 	
 	@Test
+	@DisplayName("Test case to recreate a TableLeafCell from bytes")
 	void getBytes() {
 		TableLeafCell tmpTestCell = new TableLeafCell(ByteHelpers.byteArrayListToArray(testCell.getBytes()));
 		assertEquals(testCell, tmpTestCell);

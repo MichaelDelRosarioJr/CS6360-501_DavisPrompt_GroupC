@@ -100,6 +100,7 @@ public class DataRecord {
 		ByteBuffer dataBuffer = ByteBuffer.wrap(data);
 		
 		// Get the number of columns and create arrays
+
 		int numColumns = byteToUnSignedInt(dataBuffer.get());
 		this.columnDataType = new byte[numColumns];
 		this.columnData = new String[numColumns];
