@@ -1,6 +1,7 @@
 package edu.utdallas.cs6360.davisbase.utils;
 
 import edu.utdallas.cs6360.davisbase.trees.DataCell;
+import edu.utdallas.cs6360.davisbase.trees.DataType;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -71,7 +72,7 @@ public final class ByteHelpers {
 	 * @param value a float value
 	 * @return an array of bytes
 	 */
-	public static byte [] floatToByte (float value)  {
+	public static byte[] floatToByte (float value)  {
 		return ByteBuffer.allocate(Float.BYTES).putFloat(value).array();
 	}
 	

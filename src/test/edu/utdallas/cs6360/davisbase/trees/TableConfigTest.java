@@ -3,6 +3,9 @@ package edu.utdallas.cs6360.davisbase.trees;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -15,10 +18,10 @@ import static org.junit.jupiter.api.Assertions.*;
 class TableConfigTest {
 	private TableConfig testObject = null;
 	
-	static DataType[] colTypes = {DataType.TINY_INT_TYPE_CODE,
+	static ArrayList<DataType> colTypes = new ArrayList<>(Arrays.asList(DataType.TINY_INT_TYPE_CODE,
 			DataType.SHORT_TYPE_CODE, DataType.INT_TYPE_CODE, DataType.LONG_TYPE_CODE,
 			DataType.REAL_TYPE_CODE, DataType.DOUBLE_TYPE_CODE, DataType.DATETIME_TYPE_CODE,
-			DataType.DATE_TYPE_CODE, DataType.TEXT_TYPE_CODE};
+			DataType.DATE_TYPE_CODE, DataType.TEXT_TYPE_CODE));
 	
 	static int treeOrder = 50;
 	static int leafDegree = 2;

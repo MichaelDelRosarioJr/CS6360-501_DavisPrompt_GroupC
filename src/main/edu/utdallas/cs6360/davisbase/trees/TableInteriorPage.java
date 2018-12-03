@@ -120,12 +120,12 @@ public class TableInteriorPage extends Page{
 		tableInteriorPageHeader.add(getNumOfCells());
 		
 		// Convert `startOfCellPointers` to bytes and add to header
-		for(byte b : shortToBytes(getStartOfCellPointers())) {
+		for(Byte b : shortToBytes(getStartOfCellPointers())) {
 			tableInteriorPageHeader.add(b);
 		}
 		
 		// Convert `nextPagePointer` to bytes and add to header
-		for(byte b: intToBytes(this.nextPagePointer)) {
+		for(Byte b: intToBytes(this.nextPagePointer)) {
 			tableInteriorPageHeader.add(b);
 		}
 		return tableInteriorPageHeader;

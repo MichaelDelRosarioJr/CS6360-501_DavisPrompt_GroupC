@@ -1,9 +1,7 @@
 package edu.utdallas.cs6360.davisbase.trees;
 
-import javax.xml.crypto.Data;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -62,14 +60,14 @@ public class TableConfig {
 	 * Constructor that initializes a TableTree when passed an array of DataType enum values
 	 * @param columnTypes an array of DataType enums representing column data types
 	 */
-	public TableConfig(DataType[] columnTypes) {
-		this.numOfColumns = columnTypes.length;
+	public TableConfig(ArrayList<DataType> columnTypes) {
+		this.numOfColumns = columnTypes.size();
 		this.dataMaxRecordSize = calculateMaxDataRecordSize(columnTypes);
 		this.dataRecordSizeNoText = calculateMinDataRecordSize(columnTypes);
 		this.treeOrder = calculateTreeOrder();
 		this.leafPageDegree = calculateLeafPageDegree();
 		this.hasTextColumns = doesColHaveTextFields(columnTypes);
-		this.colTypes = (ArrayList<DataType>) Arrays.asList(columnTypes);
+		this.colTypes = columnTypes;
 		logTreeConfig();
 	}
 	
@@ -77,7 +75,7 @@ public class TableConfig {
 	 * Constructor that initializes a TableTree when passed an array bytes representing data type codes
 	 * @param columnTypeCodes an array of data type byte cods
 	 */
-	public TableConfig(byte[] columnTypeCodes) {
+	public TableConfig(DataType[] columnTypeCodes) {
 		this.numOfColumns = columnTypeCodes.length;
 		this.dataMaxRecordSize = calculateMaxDataRecordSize(columnTypeCodes);
 		this.dataRecordSizeNoText = calculateMinDataRecordSize(columnTypeCodes);
@@ -232,6 +230,20 @@ public class TableConfig {
 	 * @param columnTypeCodes an array of column type codes
 	 * @return the size in bytes of any instantiated data records with this column configuration
 	 */
+	private int calculateMaxDataRecordSize(DataType[] columnTypeCodes) {
+		int size = 0;
+		for (DataType b : columnTypeCodes) {
+			size += DataType.getMaxSize(b.getTypeCode());
+		}
+		return size;
+	}
+	
+	/**
+	 * Calculates the size of the column data cells when passed an array of byte type codes<br>
+	 *     For Text columns it returns the largest possible record size since Text columns make it variable in length
+	 * @param columnTypeCodes an array of column type codes
+	 * @return the size in bytes of any instantiated data records with this column configuration
+	 */
 	private int calculateMaxDataRecordSize(byte[] columnTypeCodes) {
 		int size = 0;
 		for (byte b : columnTypeCodes) {
@@ -262,7 +274,7 @@ public class TableConfig {
 	 * @param columnTypes an array of column type codes
 	 * @return the size in bytes of any instantiated data records with this column configuration
 	 */
-	private int calculateMaxDataRecordSize(DataType[] columnTypes) {
+	private int calculateMaxDataRecordSize(ArrayList<DataType> columnTypes) {
 		int size = 0;
 		for (DataType d : columnTypes) {
 			size += DataType.getMaxSize(d.getTypeCode());
@@ -276,7 +288,7 @@ public class TableConfig {
 	 * @param columnTypes an array of column type codes
 	 * @return the size in bytes of any instantiated data records with this column configuration
 	 */
-	private int calculateMinDataRecordSize(DataType[] columnTypes) {
+	private int calculateMinDataRecordSize(ArrayList<DataType> columnTypes) {
 		int size = 0;
 		for (DataType d : columnTypes) {
 			if (d != DataType.TEXT_TYPE_CODE) {
@@ -284,6 +296,16 @@ public class TableConfig {
 			}
 		}
 		return size;
+	}
+	
+	/**
+	 * Calculates the size of the column data cells when passed an array of byte type codes<br>
+	 *     For Text columns it does nothing, this is used when determining the size of inserting a new record
+	 * @param columnTypes an array of column type codes
+	 * @return the size in bytes of any instantiated data records with this column configuration
+	 */
+	private int calculateMinDataRecordSize(DataType[] columnTypes) {
+		return calculateMinDataRecordSize(new ArrayList<>(Arrays.asList(columnTypes)));
 	}
 	
 	/**
@@ -333,16 +355,16 @@ public class TableConfig {
 	 * *****************************
 	 * *****************************
 	 */
-	public static boolean doesColHaveTextFields(byte[] colTypeCodes){
-		for (byte b : colTypeCodes) {
-			if (DataType.getEnum(b) == DataType.TEXT_TYPE_CODE) {
+	public static boolean doesColHaveTextFields(DataType[] colTypeCodes){
+		for (DataType b : colTypeCodes) {
+			if (b == DataType.TEXT_TYPE_CODE) {
 				return true;
 			}
 		}
 		return false;
 	}
 	
-	public static boolean doesColHaveTextFields(DataType[] colTypes){
+	public static boolean doesColHaveTextFields(ArrayList<DataType> colTypes){
 		for (DataType type : colTypes) {
 			if (type == DataType.TEXT_TYPE_CODE) {
 				return true;

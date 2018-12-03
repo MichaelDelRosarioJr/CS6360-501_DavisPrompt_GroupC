@@ -89,12 +89,12 @@ public class TableLeafCell extends DataCell {
 		ArrayList<Byte> payloadBytes= this.payload.getBytes();
 		
 		// Get payload size for cells 0-1 at the beginning of the header
-		for(byte b : shortToBytes((short)payloadBytes.size())) {
+		for(Byte b : shortToBytes((short)payloadBytes.size())) {
 			output.add(b);
 		}
 		
 		// It rowId for bytes 2-5 of the header
-		for(byte b : intToBytes(this.getRowId())) {
+		for(Byte b : intToBytes(this.getRowId())) {
 			output.add(b);
 		}
 		

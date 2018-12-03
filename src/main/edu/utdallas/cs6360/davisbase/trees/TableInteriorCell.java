@@ -113,11 +113,11 @@ public class TableInteriorCell extends DataCell implements Comparable<DataCell> 
 	public List<Byte> getBytes() {
 		ArrayList<Byte> output = new ArrayList<>();
 		
-		for(byte b: ByteHelpers.intToBytes(this.leftChildPointer)) {
+		for(Byte b: ByteHelpers.intToBytes(this.leftChildPointer)) {
 			output.add(b);
 		}
 		
-		for(byte b: ByteHelpers.intToBytes(this.getRowId())) {
+		for(Byte b: ByteHelpers.intToBytes(this.getRowId())) {
 			output.add(b);
 		}
 		

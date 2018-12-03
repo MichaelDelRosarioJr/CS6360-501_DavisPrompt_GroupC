@@ -154,7 +154,7 @@ public class TableTree {
 	 * the root page/node is created which is also a leaf node.
 	 * @param databaseName the name of the user table to access
 	 */
-	public TableTree(String databaseName, DataType[] colTypes) throws IOException {
+	public TableTree(String databaseName, ArrayList<DataType> colTypes) throws IOException {
 		this.databaseName = databaseName;
 		this.databaseType = DatabaseType.USER;
 		this.fileName = FileHandler.getTableFileName(this.databaseName, this.databaseType);

@@ -19,20 +19,15 @@ import static org.junit.jupiter.api.Assertions.*;
 class TableLeafCellTest {
 	private TableLeafCell testCell;
 	
-	private ArrayList<Byte> columnTypeBytes;
+	private ArrayList<DataType> columnTypes = DataRecordTest.columnTypes;
 	private DataRecord testDataRecord = null;
 	
 	private static final int ROW_ID = 50;
 	
 	@BeforeEach
 	void setUp() {
-		
-		columnTypeBytes = new byte[DataRecordTest.columnTypes.length];
-		for(int i = 0; i < DataRecordTest.columnTypes.length; i++) {
-			columnTypeBytes.set(i, DataRecordTest.columnTypes[i].getTypeCode());
-		}
-		//columnTypeBytes[columnTypeBytes.length - 1] = (byte)(columnTypes[columnTypes.length - 1].getTypeCode() + 6);
-		testDataRecord = new DataRecord(columnTypeBytes, DataRecordTest.columnData);
+		//columnTypes[columnTypes.length - 1] = (byte)(columnTypes[columnTypes.length - 1].getTypeCode() + 6);
+		testDataRecord = new DataRecord(DataRecordTest.columnTypes, DataRecordTest.columnData);
 		
 		testCell = new TableLeafCell(ROW_ID, testDataRecord);
 		

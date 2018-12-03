@@ -147,12 +147,12 @@ public class TableLeafPage extends Page{
 		tableLeafCellHeader.add(getNumOfCells());
 		
 		// Convert `startOfCellPointers` to bytes and add to header
-		for(byte b : shortToBytes(getStartOfCellPointers())) {
+		for(Byte b : shortToBytes(getStartOfCellPointers())) {
 			tableLeafCellHeader.add(b);
 		}
 		
 		// Convert `nextPagePointer` to bytes and add to header
-		for(byte b: intToBytes(this.nextPagePointer)) {
+		for(Byte b: intToBytes(this.nextPagePointer)) {
 			tableLeafCellHeader.add(b);
 		}
 		return tableLeafCellHeader;

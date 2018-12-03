@@ -1,6 +1,5 @@
 package edu.utdallas.cs6360.davisbase.trees;
 
-import edu.utdallas.cs6360.davisbase.utils.ByteHelpers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -8,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -27,8 +28,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class TableInteriorPageTest {
 	private static final Logger LOGGER = Logger.getLogger(TableInteriorPageTest.class.getName());
 	
-	static DataType[] colTypes = {DataType.TINY_INT_TYPE_CODE,
-			DataType.SHORT_TYPE_CODE, DataType.INT_TYPE_CODE, DataType.LONG_TYPE_CODE};
+	static ArrayList<DataType> colTypes = new ArrayList<>(Arrays.asList(DataType.TINY_INT_TYPE_CODE,
+			DataType.SHORT_TYPE_CODE, DataType.INT_TYPE_CODE, DataType.LONG_TYPE_CODE));
 	
 	TableConfig tableConfig;
 	TableInteriorPage testPage;
@@ -36,7 +37,7 @@ class TableInteriorPageTest {
 	@BeforeEach
 	void setUp() {
 		this.tableConfig = new TableConfig(colTypes);
-		this.testPage = new TableInteriorPage(PageType.TABLE_INTERIOR_ROOT, ZERO);
+		this.testPage = new TableInteriorPage(PageType.TABLE_INTERIOR_ROOT, ZERO, tableConfig);
 		
 	}
 	
@@ -66,7 +67,7 @@ class TableInteriorPageTest {
 			file.seek(testPage.getPageNumber() * PAGE_SIZE);
 			file.read(fromFile);
 			LOGGER.log(Level.INFO, "Attemping to create new TableLeafPage from bytes collected in file");
-			tableInteriorPage = new TableInteriorPage(fromFile, ZERO);
+			tableInteriorPage = new TableInteriorPage(fromFile, ZERO, tableConfig);
 			assertEquals(this.testPage, tableInteriorPage);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -106,7 +107,7 @@ class TableInteriorPageTest {
 			file.seek(testPage.getPageNumber() * PAGE_SIZE);
 			file.read(fromFile);
 			LOGGER.log(Level.INFO, "Attemping to create new TableLeafPage from bytes collected in file");
-			tableInteriorPage = new TableInteriorPage(fromFile, ZERO);
+			tableInteriorPage = new TableInteriorPage(fromFile, ZERO, tableConfig);
 			assertEquals(this.testPage, tableInteriorPage);
 		} catch (IOException e) {
 			e.printStackTrace();

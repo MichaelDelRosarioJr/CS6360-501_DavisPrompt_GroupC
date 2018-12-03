@@ -26,7 +26,7 @@ import static edu.utdallas.cs6360.davisbase.Config.*;
 public class DataRecord {
 	
 	
-	private ArrayList<Byte> columnDataType;
+	private ArrayList<DataType> columnDataType;
 	private ArrayList<String> columnData;
 	
 	/**
@@ -67,11 +67,9 @@ public class DataRecord {
 	 */
 	DataRecord(ArrayList<DataType> types, ArrayList<String> data) {
 		this.columnData = data;
-		this.columnDataType = new ArrayList<>();
-		for(int i = ZERO; i < types.size(); i++) {
-			this.columnDataType.set(i, types.get(i).getTypeCode());
-		}
+		this.columnDataType = types;
 	}
+	
 	
 	/**
 	 * This Constructor is used when loading a DataRecord from disk.<br>
@@ -99,69 +97,85 @@ public class DataRecord {
 		ByteBuffer dataBuffer = ByteBuffer.wrap(data);
 		
 		// Get the number of columns and create arrays
-
+		
 		int numColumns = byteToUnSignedInt(dataBuffer.get());
 		this.columnDataType = new ArrayList<>();
 		this.columnData = new ArrayList<>();
 		
+		ArrayList<Byte> originalCodes = new ArrayList<>();
 		// Get column data types
 		for(int i = ZERO; i < numColumns; i++) {
-			this.columnDataType.set(i, dataBuffer.get());
+			originalCodes.add(dataBuffer.get());
+			this.columnDataType.add(DataType.getEnum(originalCodes.get(i)));
+			
 		}
 		
 		// Pointer for column arrays
 		int columnPointer = ZERO;
 		while (dataBuffer.hasRemaining() && columnPointer < this.columnDataType.size()) {
-			switch (DataType.getEnum(this.columnDataType.get(columnPointer))) {
+			switch (this.columnDataType.get(columnPointer)) {
 				case NULL1_TYPE_CODE:
-					this.columnData.set(columnPointer++, "");
+					this.columnData.add("");
+					columnPointer++;
 					dataBuffer.get();
 					break;
 				case NULL2_TYPE_CODE:
-					this.columnData.set(columnPointer++, "");
+					this.columnData.add("");
+					columnPointer++;
 					dataBuffer.getShort();
 					break;
 				case NULL4_TYPE_CODE:
-					this.columnData.set(columnPointer++, "");
+					this.columnData.add("");
+					columnPointer++;
 					dataBuffer.getInt();
 					break;
 				case NULL8_TYPE_CODE:
-					this.columnData.set(columnPointer++, "");
+					this.columnData.add("");
+					columnPointer++;
 					dataBuffer.getLong();
 					break;
 				case TINY_INT_TYPE_CODE:
-					this.columnData.set(columnPointer++, Byte.toString(dataBuffer.get()));
+					this.columnData.add(Byte.toString(dataBuffer.get()));
+					columnPointer++;
 					break;
 				case SHORT_TYPE_CODE:
-					this.columnData.set(columnPointer++, Short.toString(dataBuffer.getShort()));
+					this.columnData.add(Short.toString(dataBuffer.getShort()));
+					columnPointer++;
 					break;
 				case INT_TYPE_CODE:
-					this.columnData.set(columnPointer++, Integer.toString(dataBuffer.getInt()));
+					this.columnData.add(Integer.toString(dataBuffer.getInt()));
+					columnPointer++;
 					break;
 				case LONG_TYPE_CODE:
-					this.columnData.set(columnPointer++, Long.toString(dataBuffer.getLong()));
+					this.columnData.add(Long.toString(dataBuffer.getLong()));
+					columnPointer++;
 					break;
 				case REAL_TYPE_CODE:
-					this.columnData.set(columnPointer++, Float.toString(dataBuffer.getFloat()));
+					this.columnData.add(Float.toString(dataBuffer.getFloat()));
+					columnPointer++;
 					break;
 				case DOUBLE_TYPE_CODE:
-					this.columnData.set(columnPointer++, Double.toString(dataBuffer.getDouble()));
+					this.columnData.add(Double.toString(dataBuffer.getDouble()));
+					columnPointer++;
 					break;
 				case DATETIME_TYPE_CODE:
-					this.columnData.set(columnPointer++, Long.toUnsignedString(dataBuffer.getLong()));
+					this.columnData.add(Long.toUnsignedString(dataBuffer.getLong()));
+					columnPointer++;
 					break;
 				case DATE_TYPE_CODE:
-					this.columnData.set(columnPointer++, Long.toUnsignedString(dataBuffer.getLong()));
+					this.columnData.add(Long.toUnsignedString(dataBuffer.getLong()));
+					columnPointer++;
 					break;
 				case TEXT_TYPE_CODE:
 					// Get the size of the text field from the type code byte representation
-					int lengthOfText = DataType.getDataTypeSize(this.columnDataType.get(columnPointer));
+					int lengthOfText = DataType.getDataTypeSize(originalCodes.get(columnPointer));
 					// Store the correct type code
-					this.columnDataType.set(columnPointer, DataType.TEXT_TYPE_CODE.getTypeCode());
+					this.columnDataType.add(DataType.TEXT_TYPE_CODE);
 					// Use the lengthOfText local variable to collect the text values
 					byte[] textColData = new byte[lengthOfText];
 					dataBuffer.get(textColData, ZERO, lengthOfText);
-					this.columnData.set(columnPointer++, new String(textColData, StandardCharsets.US_ASCII));
+					this.columnData.add(new String(textColData, StandardCharsets.US_ASCII));
+					columnPointer++;
 					break;
 				default:
 					throw new IllegalStateException("Invalid Data Type Byte Code");
@@ -185,7 +199,7 @@ public class DataRecord {
 	 * @param colId the id of the column type to retrieve
 	 * @return the column's data type code
 	 */
-	byte getColumnDataType(int colId) {
+	DataType getColumnDataType(int colId) {
 		return this.columnDataType.get(colId);
 	}
 	
@@ -197,22 +211,22 @@ public class DataRecord {
 	 * @param data the String containing the correct data
 	 */
 	void setColumnData(int colId, String data) {
-		DataType colType = DataType.getEnum(this.columnDataType.get(colId));
+		DataType colType = this.columnDataType.get(colId);
 		
 		if (colType == DataType.NULL1_TYPE_CODE) {
-			this.columnDataType.set(colId, DataType.TINY_INT_TYPE_CODE.getTypeCode());
+			this.columnDataType.set(colId, DataType.TINY_INT_TYPE_CODE);
 		}
 		
 		if (colType == DataType.NULL2_TYPE_CODE) {
-			this.columnDataType.set(colId, DataType.SHORT_TYPE_CODE.getTypeCode());
+			this.columnDataType.set(colId, DataType.SHORT_TYPE_CODE);
 		}
 		
 		if (colType == DataType.NULL4_TYPE_CODE) {
-			this.columnDataType.set(colId, DataType.INT_TYPE_CODE.getTypeCode());
+			this.columnDataType.set(colId, DataType.INT_TYPE_CODE);
 		}
 		
 		if (colType == DataType.NULL8_TYPE_CODE) {
-			this.columnDataType.set(colId, DataType.LONG_TYPE_CODE.getTypeCode());
+			this.columnDataType.set(colId, DataType.LONG_TYPE_CODE);
 		}
 		
 		this.columnData.set(colId, data);
@@ -227,25 +241,25 @@ public class DataRecord {
 	 * @param colId the id of the column to set to null
 	 */
 	void setColumnNull(int colId) {
-		DataType colType = DataType.getEnum(this.columnDataType.get(colId));
+		DataType colType = this.columnDataType.get(colId);
 		
 		if (colType == DataType.TINY_INT_TYPE_CODE) {
-			this.columnDataType.set(colId, DataType.NULL1_TYPE_CODE.getTypeCode());
+			this.columnDataType.set(colId, DataType.NULL1_TYPE_CODE);
 			this.columnData.set(colId, "");
 		}
 		
 		if (colType == DataType.SHORT_TYPE_CODE) {
-			this.columnDataType.set(colId, DataType.NULL2_TYPE_CODE.getTypeCode());
+			this.columnDataType.set(colId, DataType.NULL2_TYPE_CODE);
 			this.columnData.set(colId, "");
 		}
 		
 		if (colType == DataType.INT_TYPE_CODE) {
-			this.columnDataType.set(colId, DataType.NULL4_TYPE_CODE.getTypeCode());
+			this.columnDataType.set(colId, DataType.NULL4_TYPE_CODE);
 			this.columnData.set(colId, "");
 		}
 		
 		if (colType == DataType.LONG_TYPE_CODE) {
-			this.columnDataType.set(colId, DataType.NULL8_TYPE_CODE.getTypeCode());
+			this.columnDataType.set(colId, DataType.NULL8_TYPE_CODE);
 			this.columnData.set(colId, "");
 		}
 		
@@ -260,11 +274,11 @@ public class DataRecord {
 		ArrayList<Byte> output = new ArrayList<>();
 		output.add((byte) this.columnData.size());
 		
-			
+		
 		output.addAll(getColumnCodes());
 		// Get column data bytes and add to the end of the ArrayList
 		output.addAll(getColumnDataBytes());
-
+		
 		return output;
 	}
 	
@@ -285,11 +299,11 @@ public class DataRecord {
 		ArrayList<Byte> output = new ArrayList<>();
 		
 		for (int i = ZERO; i < this.columnDataType.size(); i++) {
-			if (this.columnDataType.get(i) < DataType.TEXT_TYPE_CODE.getTypeCode()) {
-				output.add(this.columnDataType.get(i));
+			if (this.columnDataType.get(i).getTypeCode() < DataType.TEXT_TYPE_CODE.getTypeCode()) {
+				output.add(this.columnDataType.get(i).getTypeCode());
 			} else {
 				int textLength = this.columnData.get(i).getBytes(StandardCharsets.US_ASCII).length;
-				output.add((byte) (this.columnDataType.get(i) +(byte)textLength));
+				output.add((byte) (this.columnDataType.get(i).getTypeCode() +(byte)textLength));
 			}
 		}
 		return output;
@@ -303,7 +317,7 @@ public class DataRecord {
 		ArrayList<Byte> output = new ArrayList<>();
 		
 		for (int i = ZERO; i < this.columnData.size(); i++) {
-			switch (DataType.getEnum(this.columnDataType.get(i))) {
+			switch (this.columnDataType.get(i)) {
 				case NULL1_TYPE_CODE:
 					output.add((byte) ZERO);
 					break;
@@ -376,7 +390,7 @@ public class DataRecord {
 					break;
 				default:
 					throw new IllegalStateException("Illegal Data Type");
-					
+				
 			}
 		}
 		return output;
@@ -423,7 +437,7 @@ public class DataRecord {
 	 * DataRecord's column type codes
 	 * @return an array of bytes containing the DataRecord's coulmn type codes
 	 */
-	private ArrayList<Byte> getColumnDataTypes() { return this.columnDataType; }
+	private ArrayList<DataType> getColumnDataTypes() { return this.columnDataType; }
 	
 	/**
 	 * A helper method used by the equals() method that returns the
@@ -482,7 +496,7 @@ public class DataRecord {
 		}
 		
 		// If they column types don't match return false
-		ArrayList<Byte> otherDataTyes = other.getColumnDataTypes();
+		ArrayList<DataType> otherDataTyes = other.getColumnDataTypes();
 		for (int i = ZERO; i < this.getNumColumns(); i++) {
 			if (this.columnDataType.get(i) != otherDataTyes.get(i)) {
 				return false;

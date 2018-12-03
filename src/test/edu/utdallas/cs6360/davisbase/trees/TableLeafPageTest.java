@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -26,20 +27,22 @@ class TableLeafPageTest {
 	public static final String NULL_VALUE = "\0";
 	
 	// Arrays of column type codes and values for different test configurations
-	static DataType[] columnTypesText = {DataType.TEXT_TYPE_CODE, DataType.TEXT_TYPE_CODE};
-	static ArrayList<String> columnValuesText = {"Aa", "Ba"};
+	static ArrayList<DataType> columnTypesText = new ArrayList<>(Arrays.asList(DataType.TEXT_TYPE_CODE,
+			DataType.TEXT_TYPE_CODE));
+	static ArrayList<String> columnValuesText = new ArrayList<>(Arrays.asList("Aa", "Ba"));
 	
-	static DataType[] columnTypesText2 = {DataType.TINY_INT_TYPE_CODE,
-			DataType.SHORT_TYPE_CODE, DataType.INT_TYPE_CODE, DataType.LONG_TYPE_CODE, DataType.TEXT_TYPE_CODE};
-	static ArrayList<String> columnValuesText2 = {"1", "16", "1000", "1000000000", "Aa"};
+	static ArrayList<DataType> columnTypesText2 = new ArrayList<>(Arrays.asList(DataType.TINY_INT_TYPE_CODE,
+			DataType.SHORT_TYPE_CODE, DataType.INT_TYPE_CODE, DataType.LONG_TYPE_CODE, DataType.TEXT_TYPE_CODE));
+	static ArrayList<String> columnValuesText2 = new ArrayList<>(Arrays.asList("1", "16", "1000", "1000000000", "Aa"));
 	
-	static DataType[] columnTypesNoText = {DataType.TINY_INT_TYPE_CODE,
-			DataType.SHORT_TYPE_CODE, DataType.INT_TYPE_CODE, DataType.LONG_TYPE_CODE};
-	static ArrayList<String> columnValuesNoText = {"1", "16", "1000", "1000000000"};
+	static ArrayList<DataType> columnTypesNoText = new ArrayList<>(Arrays.asList(DataType.TINY_INT_TYPE_CODE,
+			DataType.SHORT_TYPE_CODE, DataType.INT_TYPE_CODE, DataType.LONG_TYPE_CODE));
+	static ArrayList<String> columnValuesNoText = new ArrayList<>(Arrays.asList("1", "16", "1000", "1000000000"));
 	
-	static DataType[] columnTypesNoText2 = {DataType.REAL_TYPE_CODE, DataType.DOUBLE_TYPE_CODE,
-			DataType.DATETIME_TYPE_CODE, DataType.DATE_TYPE_CODE};
-	static ArrayList<String> columnValuesNoText2 = {"4.14", "4.1566666", "1112124354", "1112124354"};
+	static ArrayList<DataType> columnTypesNoText2 = new ArrayList<>(Arrays.asList(DataType.REAL_TYPE_CODE,
+			DataType.DOUBLE_TYPE_CODE, DataType.DATETIME_TYPE_CODE, DataType.DATE_TYPE_CODE));
+	static ArrayList<String> columnValuesNoText2 = new ArrayList<>(Arrays.asList("4.14", "4.1566666", "1112124354",
+			"1112124354"));
 	
 	@BeforeEach
 	void setUp() {
