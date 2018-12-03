@@ -390,7 +390,7 @@ public abstract class Page {
 	 *
 	 * @return the median rowId within the page that the page can be split on
 	 */
-	int getMediaRowId() {
+	int getMedianRowId() {
 		Collections.sort(this.dataCells);
 		return this.dataCells.get((this.numOfCells + ONE) / TWO).getRowId();
 	}
