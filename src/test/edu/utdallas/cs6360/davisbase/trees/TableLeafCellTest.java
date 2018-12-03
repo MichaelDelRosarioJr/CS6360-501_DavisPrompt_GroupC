@@ -5,6 +5,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -17,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class TableLeafCellTest {
 	private TableLeafCell testCell;
 	
-	private byte[] columnTypeBytes;
+	private ArrayList<Byte> columnTypeBytes;
 	private DataRecord testDataRecord = null;
 	
 	private static final int ROW_ID = 50;
@@ -27,7 +29,7 @@ class TableLeafCellTest {
 		
 		columnTypeBytes = new byte[DataRecordTest.columnTypes.length];
 		for(int i = 0; i < DataRecordTest.columnTypes.length; i++) {
-			columnTypeBytes[i] = DataRecordTest.columnTypes[i].getTypeCode();
+			columnTypeBytes.set(i, DataRecordTest.columnTypes[i].getTypeCode());
 		}
 		//columnTypeBytes[columnTypeBytes.length - 1] = (byte)(columnTypes[columnTypes.length - 1].getTypeCode() + 6);
 		testDataRecord = new DataRecord(columnTypeBytes, DataRecordTest.columnData);

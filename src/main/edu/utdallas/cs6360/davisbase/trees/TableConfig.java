@@ -1,5 +1,9 @@
 package edu.utdallas.cs6360.davisbase.trees;
 
+import javax.xml.crypto.Data;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -17,6 +21,10 @@ import static edu.utdallas.cs6360.davisbase.Config.*;
  * @author Mithil Vijay
  */
 public class TableConfig {
+	
+	/**
+	 * A logger that logs things for logging purposes
+	 */
 	private static final Logger LOGGER = Logger.getLogger(TableConfig.class.getName());
 	
 	// DataRecord Size: different depending on the CREATE TABLE command
@@ -30,6 +38,12 @@ public class TableConfig {
 	// True if the table has text columns false otherwise
 	private boolean hasTextColumns;
 	
+	/**
+	 * TODO: Link with metadata tables
+	 */
+	private ArrayList<DataType> colTypes;
+	
+	
 	
 	/**
 	 * Default constructor for completeness
@@ -41,6 +55,7 @@ public class TableConfig {
 		this.leafPageDegree = -1;
 		this.numOfColumns = -1;
 		this.hasTextColumns = false;
+		this.colTypes = new ArrayList<>();
 	}
 	
 	/**
@@ -54,6 +69,7 @@ public class TableConfig {
 		this.treeOrder = calculateTreeOrder();
 		this.leafPageDegree = calculateLeafPageDegree();
 		this.hasTextColumns = doesColHaveTextFields(columnTypes);
+		this.colTypes = (ArrayList<DataType>) Arrays.asList(columnTypes);
 		logTreeConfig();
 	}
 	
@@ -123,6 +139,24 @@ public class TableConfig {
 	 */
 	public void setHasTextColumns(boolean hasTextColumns) {
 		this.hasTextColumns = hasTextColumns;
+	}
+	
+	/**
+	 * Getter for property 'colTypes'.
+	 *
+	 * @return Value for property 'colTypes'.
+	 */
+	public ArrayList<DataType> getColTypes() {
+		return colTypes;
+	}
+	
+	/**
+	 * Setter for property 'colTypes'.
+	 *
+	 * @param colTypes Value to set for property 'colTypes'.
+	 */
+	public void setColTypes(ArrayList<DataType> colTypes) {
+		this.colTypes = colTypes;
 	}
 	
 	

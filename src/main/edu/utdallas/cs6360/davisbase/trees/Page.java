@@ -17,25 +17,59 @@ import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.*;
 
 /**
  * Abstract class containing common tasks associated with managing pages and their data cells
+ *
+ * TODO: If time go and change all the INTs that will never be larger than bytes/shorts to them respectively
  * @author Charles Krol
  * @author Matthew Villarreal
  * @author Michael Del Rosario
  * @author Mithil Vijay
  */
 public abstract class Page {
+	/**
+	 * A logger that logs things for logging purposes
+	 */
 	private static final Logger LOGGER = Logger.getLogger(Page.class.getName());
+	
+	/**
+	 * A class that holds metadata relating to the logical database this file backs and methods to calculate various
+	 * information about the underlying tree structure such as the maximum number of DataCells a LeafPage can hold when
+	 * accounting for the number of space taken up by each row in the file.
+	 */
+	private TableConfig tableConfig;
+	
+	/**
+	 * 4-byte signed integer page number representing the page's physical position in the file not the logical ordering.
+	 */
 	private int pageNumber;
+	
+	/**
+	 * An enumerator that can take on the values of: <br>
+	 *  <i>INDEX_LEAF_ROOT 0x00</i>,<br>
+	 * 	<i>INDEX_INTERIOR_ROOT 0x01</i>,<br>
+	 * 	INDEX_INTERIOR_PAGE 0x02,<br>
+	 * 	INDEX_LEAF_PAGE 0x0A,<br><br>
+	 *
+	 * 	<i>TABLE_LEAF_ROOT 0x03</i>,<br>
+	 * 	<i>TABLE_INTERIOR_ROOT 0x04</i>,<br>
+	 * 	TABLE_INTERIOR_PAGE 0x05,<br>
+	 * 	TABLE_LEAF_PAGE 0x0D;<br>
+	 *
+	 * 	The types in <i>italics</i> represent page types not specified in the requirements, but added to simplify things
+	 * 	<b>These new type codes for the various *_ROOT page types are NOT written to file. They are replaced with the
+	 * 	correct code at write time by when the getBytes() function calls the getByteCode() method of PageType</b>
+	 */
 	private PageType pageType;
 	
 	/**
-	 * The maximum number of cells on a page, a 1 byte
-	 * signed integer. Maximum number of records on a page
-	 * is 127
+	 * A 1-byte signed integer representing the number of bytes contained on this page.
+	 * Theoretically the maximum number of cells that can fit on a page is the largest value a 1-byte signed integer
+	 * can take on. Maximum possible number of records on a page is 127, the actual is much less as they would all have
+	 * to be 1 column entries of byte values based on the default PAGE_SIZE = 512.
 	 */
 	private byte numOfCells;
 	
 	/**
-	 * The start of the data cell pointers.
+	 * The start of the data cell pointers from the end of the page
 	 * 2^16 - valueFromDisk = startOfCellPointers
 	 * Assuming we cannot have a negative value then<br>
 	 * Range: [0, 2^15-1],
@@ -44,8 +78,9 @@ public abstract class Page {
 	 */
 	private short startOfCellPointers;
 	
-	private int nextPagePointer;
-	
+	/**
+	 * The ArrayList containing the data cells stored at the end of the [age this page
+	 */
 	private ArrayList<DataCell> dataCells;
 	
 	/**
@@ -64,8 +99,8 @@ public abstract class Page {
 	Page() {
 		this.pageType = null;
 		this.pageNumber = -ONE;
-		this.numOfCells = ZERO;
 		this.dataCells = new ArrayList<>();
+		this.tableConfig = new TableConfig();
 	}
 	
 	/**
@@ -73,11 +108,11 @@ public abstract class Page {
 	 * @param pageType the page type
 	 * @param pageNumber the number of the page within the file
 	 */
-	Page(PageType pageType, int pageNumber) {
+	Page(PageType pageType, int pageNumber, TableConfig tableConfig) {
 		this.pageType = pageType;
 		this.pageNumber = pageNumber;
-		this.numOfCells = ZERO;
 		this.dataCells = new ArrayList<>();
+		this.tableConfig = tableConfig;
 	}
 	
 	/**
@@ -86,11 +121,12 @@ public abstract class Page {
 	 * @param pageNumber the page number and pointer location of the page in the file
 	 * @param dataCells the data cells to store in the page
 	 */
-	Page(PageType pageType, int pageNumber, ArrayList<DataCell> dataCells) {
+	Page(PageType pageType, int pageNumber, ArrayList<DataCell> dataCells, TableConfig tableConfig) {
 		this.pageType = pageType;
 		this.pageNumber = pageNumber;
 		this.dataCells = new ArrayList<>(dataCells);
 		this.numOfCells = (byte)this.dataCells.size();
+		this.tableConfig = tableConfig;
 	}
 	
 	/**
@@ -98,18 +134,31 @@ public abstract class Page {
 	 * @param data the raw bytes of the page in the file
 	 * @param pageNumber the ordering of the page within the file
 	 */
-	Page(byte[] data, int pageNumber) {
+	Page(byte[] data, int pageNumber, TableConfig tableConfig) {
 		// TODO Check page size here
+		if(data.length != PAGE_SIZE) {
+			LOGGER.log(Level.SEVERE, "Pages must be exactly: {0}", PAGE_SIZE);
+			throw new IllegalStateException("Size of array does not match the PAGE_SIZE value");
+		}
 		
+		// Save table config for later use
+		this.tableConfig = tableConfig;
+		
+		// Wrap the byte array in a byteBuffer to simplify out lives
 		ByteBuffer byteBuffer = ByteBuffer.wrap(data);
+		
+		// Get the page type(first byte in the page)
 		byte tmpPageType = byteBuffer.get();
 		
+		// Create new array list to hold the data cells, get the number of cells in the page and where they start within
+		// the page
 		this.dataCells = new ArrayList<>();
 		int numCells = byteBuffer.get();
 		short startOfDataCellPointers = byteBuffer.getShort();
 		
-		// Store next page pointer, if Index Leaf page the value will be 0
-		this.nextPagePointer = byteBuffer.getInt();
+		// Skip the next 4-bytes which are associated with the rightPagePointers some types of pages use
+		// If they need if they can grab it
+		byteBuffer.getInt();
 		
 		// If pageNumber = 0 then it is a root page
 		if(pageNumber != ZERO) {
@@ -120,6 +169,7 @@ public abstract class Page {
 			if (tmpType == PageType.TABLE_INTERIOR_PAGE) { this.pageType = PageType.TABLE_INTERIOR_ROOT; }
 		}
 		
+		// Initialize the data cells from the page
 		initDataCellsFromBytes(Arrays.copyOfRange(data, data.length - startOfDataCellPointers, data.length),
 				numCells, startOfDataCellPointers);
 	}
@@ -210,7 +260,7 @@ public abstract class Page {
 	 *
 	 * @return Value for property 'dataCells'.
 	 */
-	public List<DataCell> getDataCells() {
+	List<DataCell> getDataCells() {
 		return dataCells;
 	}
 	
@@ -222,7 +272,7 @@ public abstract class Page {
 	
 	/**
 	 * Setter for property 'startOfCellPointers'.
-	 *
+	 * TODO: Remove probably
 	 * @param startOfCellPointers Value to set for property 'startOfCellPointers'.
 	 */
 	public void setStartOfCellPointers(short startOfCellPointers) {
@@ -230,11 +280,20 @@ public abstract class Page {
 	}
 	
 	/**
+	 * Getter for property 'startOfCellPointers'.
+	 *
+	 * @return Value for property 'startOfCellPointers'.
+	 */
+	short getStartOfCellPointers() {
+		return startOfCellPointers;
+	}
+	
+	/**
 	 * Getter for property 'numOfCells'.
 	 *
 	 * @return Value for property 'numOfCells'.
 	 */
-	public byte getNumOfCells() {
+	byte getNumOfCells() {
 		return numOfCells;
 	}
 	
@@ -300,23 +359,22 @@ public abstract class Page {
 	void setPageNumber(int pageNumber) { this.pageNumber = pageNumber; }
 	
 	/**
-	 * Getter for property 'nextPagePointer'.
+	 * Returns the rowId of the (nth - 1)/2 item of the DataCells when in sorted order. The Median rowID within a Page
+	 * is the rowId we split the page on such that <br>
 	 *
-	 * @return Value for property 'nextPagePointer'.
-	 */
-	public int getNextPagePointer() {
-		return nextPagePointer;
-	}
-	
-	/**
-	 * Setter for property 'nextPagePointer'.
+	 *              mRowId_______others_____
+	 *             /      \                 |
+	 *           /         \                 \
+	 * New page /       mRowId(smallest       \
+	 * smaller rowIds   in this new page)      other pages....
+	 * New page
 	 *
-	 * @param nextPagePointer Value to set for property 'nextPagePointer'.
+	 * @return the median rowId within the page that the page can be split on
 	 */
-	public void setNextPagePointer(int nextPagePointer) {
-		this.nextPagePointer = nextPagePointer;
+	int getMediaRowId() {
+		Collections.sort(this.dataCells);
+		return this.dataCells.get((this.numOfCells + ONE) / TWO).getRowId();
 	}
-	
 	/**
 	 * Check if the page is full and needs splitting<br>
 	 * 
@@ -358,7 +416,7 @@ public abstract class Page {
 	/**
 	 * Sorts the DataCell ArrayList based on rowId
 	 */
-	public void sort() {
+	void sort() {
 		Collections.sort(this.dataCells);
 	}
 	
@@ -407,6 +465,85 @@ public abstract class Page {
 	boolean isIndexPage() { return this.pageType == PageType.INDEX_LEAF_PAGE ||
 			this.pageType == PageType.INDEX_LEAF_ROOT || this.pageType == PageType.INDEX_INTERIOR_PAGE ||
 			this.pageType == PageType.INDEX_INTERIOR_ROOT; }
+			
+	boolean hasTextColumns() {
+		return this.tableConfig.hasTextColumns();
+	}
+	
+	int getRecordSideNoText() {
+		return this.tableConfig.getDataRecordSizeNoText();
+	}
+	
+	boolean contains(DataCell dataCell) {
+		for(DataCell d : dataCells) {
+			if(d.getRowId() == dataCell.getRowId()) {
+				return true;
+			}
+		}
+		
+		return this.dataCells.contains(dataCell);
+	}
+	
+	/**
+	 * A method to return the ArrayList containing DataRecord formatted in bytes to the specified format to
+	 * store into the table/index file. <br>
+	 *
+	 * The format being: [pageHeader, dataCellOffsets, freeSpace, reversedDataCells]<br>
+	 *
+	 * Originally function does not add the freeSpace cells between the dataCellOffsets, but to simplify the decision
+	 * was made to include the the NULL bytes in the center. Thus this method will output an ArrayList that is always
+	 * side PAGE_SIZE. This can be done for error checking purposes
+	 *
+	 * TODO: if time, switch to array
+	 * @return an ArrayList containing the bytes that make up the page
+	 */
+	public List<Byte> getBytes() {
+		ArrayList<Byte> output = new ArrayList<>(PAGE_SIZE);
+		
+		// Placeholders for the dataCellOffsets and the dataCellBytes that need to be reversed
+		ArrayList<Byte> dataCellOffsets = new ArrayList<>();
+		ArrayList<Byte> dataCellBytes = new ArrayList<>();
+		
+		// Initialize the first offset to 0, this is also going to count the total bytes taken up by the data cells.
+		// 2 birds 1 for loop
+		short dataCellOffset = (short)ZERO;
+		
+		for(DataCell c: getDataCells()) {
+			// Get the offset for this data cell
+			for(byte offsetBytes : shortToBytes(dataCellOffset)) {
+				dataCellOffsets.add(offsetBytes);
+			}
+			
+			// Get the byte representation of this data cell
+			ArrayList<Byte> bytes = (ArrayList<Byte>)c.getBytes();
+			
+			// Use size of array to determine the cell offset for the next data cell
+			dataCellOffset += (short)bytes.size();
+			
+			// Add bytes to list of data cell bytes
+			dataCellBytes.addAll(bytes);
+		}
+		
+		// Save the startOfCellPointers for the writePage method to use
+		this.startOfCellPointers = dataCellOffset;
+		
+		// Now that startOfCellPointers is current call getHeaderBytes which uses it's value.
+		output.addAll(getHeaderBytes());
+		
+		// Append the 2*n offset array after the header
+		output.addAll(dataCellOffsets);
+		
+		// Fill the free space with NULL values
+		for(int i = output.size(); i < PAGE_SIZE - this.startOfCellPointers; i++) {
+			output.add(NULL_BYTE);
+		}
+		
+		// Reverse the data cell bytes and add them to the en of the array
+		Collections.reverse(dataCellBytes);
+		output.addAll(dataCellBytes);
+		
+		return output;
+	}
 	
 	/**
 	 * A method to write the update page data to the file, each subclass uses their own getBytes() method which contains
@@ -487,82 +624,19 @@ public abstract class Page {
 	 * *****************************
 	 * *****************************
 	 */
-	
 	/**
-	 * A method to return the ArrayList containing DataRecord formatted in bytes to the specified format to
-	 * store into the table/index file. <br>
+	 * Abstract method that all subclasses must implement which returns an 8-byte array to be stored at the beginning of
+	 * each page and acts as a header containing only the most basic information associated with reconstructing it from
+	 * raw bytes. <br>
 	 *
-	 * The format being: [pageHeader, dataCellOffsets, freeSpace, reversedDataCells]<br>
 	 *
-	 * Originally function does not add the freeSpace cells between the dataCellOffsets, but to simplify the decision
-	 * was made to include the the NULL bytes in the center. Thus this method will output an ArrayList that is always
-	 * side PAGE_SIZE. This can be done for error checking purposes
-	 *
-	 * TODO: if time, switch to array
-	 * @return an ArrayList containing the bytes that make up the page
+	 * This was mainly implemented as a way to not have to have IndexLeafPages store a `nextPagePointer`
+	 * @return an 8-byte array to be stored as a header at the beginning of this page on file
 	 */
-	public List<Byte> getBytes() {
-		ArrayList<Byte> output = new ArrayList<>(PAGE_SIZE);
-		
-		// Store the first 2 bytes of the header the page type and number of data cells
-		output.add(getPageType().getByteCode());
-		output.add(getNumOfCells());
-		
-		// Placeholders for the dataCellOffsets and the dataCellBytes that need to be reversed
-		ArrayList<Byte> dataCellOffsets = new ArrayList<>();
-		ArrayList<Byte> dataCellBytes = new ArrayList<>();
-		
-		// Initialize the first offset to 0, this is also going to count the total bytes taken up by the data cells.
-		// 2 birds 1 for loop
-		short dataCellOffset = (short)ZERO;
-		
-		for(DataCell c: getDataCells()) {
-			// Get the offset for this data cell
-			for(byte offsetBytes : shortToBytes(dataCellOffset)) {
-				dataCellOffsets.add(offsetBytes);
-			}
-			
-			// Get the byte representation of this data cell
-			ArrayList<Byte> bytes = (ArrayList<Byte>)c.getBytes();
-			
-			// Use size of array to determine the cell offset for the next data cell
-			dataCellOffset += (short)bytes.size();
-			
-			// Add bytes to list of data cell bytes
-			dataCellBytes.addAll(bytes);
-		}
-		
-		// Save the startOfCellPointers for the writePage method to use
-		this.startOfCellPointers = dataCellOffset;
-		
-		
-		// Add to master output list
-		for (byte b : shortToBytes(this.startOfCellPointers)) {
-			output.add(b);
-		}
-		
-		// Add the value of the nextPagePointer to the list
-		for (byte b : intToBytes(getNextPagePointer())) {
-			output.add(b);
-		}
-		
-		// Append the 2*n offset array after the header
-		output.addAll(dataCellOffsets);
-		
-		// Fill the free space with NULL values
-		for(int i = output.size(); i < PAGE_SIZE - this.startOfCellPointers; i++) {
-			output.add(NULL_BYTE);
-		}
-		
-		// Reverse the data cell bytes and add them to the en of the array
-		Collections.reverse(dataCellBytes);
-		output.addAll(dataCellBytes);
-		
-		return output;
-	}
+	abstract List<Byte> getHeaderBytes();
 	
 	/**
-	 * Abstract method that all subclasses should implement that returns the number of bytes taken up by the data cells.
+	 * Abstract method that all subclasses must implement that returns the number of bytes taken up by the data cells.
 	 * This value should already be calculated when preparing the page to be written to the file.<br>
 	 *
 	 * This is method is mainly used as a last resort if that mistakenly not saved, not calculated, or not set for some
@@ -571,26 +645,6 @@ public abstract class Page {
 	 * @return the number of bytes taken up by the DataCell storage area
 	 */
 	abstract short getSizeOfDataCells();
-	
-	/**
-	 * Abstract method all subclasses must implement that when given an array of bytes making up a page and an offset
-	 * in that page from the end of the page it recreates the DataCell from it's byte representation
-	 * @param data an array of bytes that make up a page in a file
-	 * @param offset an offset from the end of the page that acts as a pointer to a data cell
-	 * @return the DataCell that was represented by the bytes
-	 */
-	public abstract DataCell getDataCellAtOffsetInFile(byte[] data, short offset);
-	
-	/**
-	 * An abstract method that gets the best location to insert a cell into a page depending on
-	 * the page type and if its a leaf with text columns of variable length
-	 * @param newEntrySumOfTextFields the length of all the text fields of the new entry, if 0
-	 *                                it is assumed null or no text columns.
-	 *                                Ignored if a TableInteriorNode
-	 * @param config a TableConfig class representing the configuration of the tree based on the table's columns
-	 * @return the address of the best location for an insertion
-	 */
-	public abstract int getFreeCellLocation(int newEntrySumOfTextFields, TableConfig config);
 	
 	/**
 	 * Abstract class method that all subclasses must implement that contains instructions specific to each page type on
@@ -613,7 +667,7 @@ public abstract class Page {
 	 * @param data a page header (8 bytes)
 	 * @return true if the page is not being used, false otherwise
 	 */
-	public static boolean isFreePage(byte[] data) {
+	static boolean isFreePage(byte[] data) {
 		for (byte b : data) {
 			if (b != ZERO) {
 				return false;

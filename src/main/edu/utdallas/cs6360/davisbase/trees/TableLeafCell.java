@@ -59,19 +59,6 @@ public class TableLeafCell extends DataCell {
 	}
 	
 	/**
-	 * Constructor to reinitialize an existing TableLeafCell from it's byte representation stored a cell of bytes
-	 * @param data the byte representation of a TableLeafCell
-	 * @param offset a short representing the location of the cell within the page
-	 */
-	TableLeafCell(byte[] data, short offset) {
-		super(Arrays.copyOfRange(data, START_OF_LEAF_CELL_ROW_ID, START_OF_LEAF_CELL_ROW_ID + Integer.BYTES),
-				offset);
-		int payLoadSize = ByteBuffer.wrap(data).getShort(Config.ZERO);
-		this.payload = new DataRecord(Arrays.copyOfRange(data, START_OF_LEAF_CELL_PAYLOAD, START_OF_LEAF_CELL_PAYLOAD
-				+ payLoadSize));
-	}
-	
-	/**
 	 * Constructor to reinitialize an existing TableLeafCell from it's byte representation stored in the file
 	 * @param data the byte representation of a TableLeafCell
 	 */

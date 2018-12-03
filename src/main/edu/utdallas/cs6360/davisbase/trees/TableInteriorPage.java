@@ -4,8 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.*;
 
 import static edu.utdallas.cs6360.davisbase.Config.*;
-import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.intToBytes;
-import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.shortToBytes;
+import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.*;
 
 /**
  * Class to represent an interior page of a B+tree and it's cells
@@ -15,6 +14,22 @@ import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.shortToBytes;
  * @author Mithil Vijay
  */
 public class TableInteriorPage extends Page{
+	/**
+	 * Setter for property 'nextPagePointer'.
+	 *
+	 * @param nextPagePointer Value to set for property 'nextPagePointer'.
+	 */
+	public void setNextPagePointer(int nextPagePointer) {
+		this.nextPagePointer = nextPagePointer;
+	}
+	
+	/**
+	 * 4 byte page number that is the page number of the right child of the Page.<br>
+	 *
+	 * For TableInteriorPages it points to the next right-child sub-tree of our page that can be either a TableLeafPage
+	 * or another TableInteriorPage
+	 * @see TableLeafPage
+	 */
 	private int nextPagePointer;
 	
 	/**
@@ -40,9 +55,9 @@ public class TableInteriorPage extends Page{
 	 * @param pageType the type of page, root or regular
 	 * @param pageNumber the page number as it appears in the file
 	 */
-	public TableInteriorPage(PageType pageType, int pageNumber) {
-		super(pageType, pageNumber);
-		this.nextPagePointer = ZERO;
+	public TableInteriorPage(PageType pageType, int pageNumber, TableConfig tableConfig) {
+		super(pageType, pageNumber, tableConfig);
+		this.nextPagePointer = -1;
 	}
 	
 	/**
@@ -51,8 +66,8 @@ public class TableInteriorPage extends Page{
 	 * @param pageNumber the page number as it appears in the file
 	 * @param nextPagePointer a page number acting as a pointer to the right subtree in the file
 	 */
-	public TableInteriorPage(PageType pageType, int pageNumber, int nextPagePointer) {
-		super(pageType, pageNumber);
+	public TableInteriorPage(PageType pageType, int pageNumber, int nextPagePointer, TableConfig tableConfig) {
+		super(pageType, pageNumber, tableConfig);
 		this.nextPagePointer = nextPagePointer;
 	}
 	
@@ -62,8 +77,8 @@ public class TableInteriorPage extends Page{
 	 *
 	 * @param pageHeader the page header in bytes on the disk
 	 */
-	public TableInteriorPage(byte[] pageHeader, int pageNumber) {
-		super(pageHeader, pageNumber);
+	public TableInteriorPage(byte[] pageHeader, int pageNumber, TableConfig tableConfig) {
+		super(pageHeader, pageNumber, tableConfig);
 		ByteBuffer headerBuffer = ByteBuffer.wrap(pageHeader);
 		
 		// Throw away page type, numOfCells, and startOfCellPointers since already assigned by call to super()
@@ -71,6 +86,15 @@ public class TableInteriorPage extends Page{
 		
 		// Get next 4 bytes from ByteBuffer,
 		this.nextPagePointer = headerBuffer.getInt();
+	}
+	
+	/**
+	 * Getter for property 'nextPagePointer'.
+	 *
+	 * @return Value for property 'nextPagePointer'.
+	 */
+	int getNextPagePointer() {
+		return nextPagePointer;
 	}
 	
 	/**
@@ -82,65 +106,31 @@ public class TableInteriorPage extends Page{
 	 * *****************************
 	 * *****************************
 	 */
-	
 	/**
-	 * Method that creates a new interior cell when given a page of bytes and an offset to load from
-	 * @param data a page of bytes
-	 * @param offset the offset to load data from
-	 * @return a TableInteriorCell containing the content from the file
+	 * Method returns  8-byte array to be stored at the beginning of each page and acts as a header containing only the
+	 * most basic information associated with reconstructing it from raw bytes.
+	 * @return an 8-byte page header formatted for a TableInteriorPage
 	 */
 	@Override
-	public DataCell getDataCellAtOffsetInFile(byte[] data, short offset) {
-		int beginningOfFirstCell = PAGE_SIZE - 1 - offset;
+	public List<Byte> getHeaderBytes() {
+		ArrayList<Byte> tableInteriorPageHeader = new ArrayList<>();
 		
-		// Create array and grab data cell bytes
-		byte[] payloadBytes = new byte[TABLE_INTERIOR_CELL_SIZE];
-		for(int i = beginningOfFirstCell; i > beginningOfFirstCell - TABLE_INTERIOR_CELL_SIZE; i--) {
-			payloadBytes[beginningOfFirstCell - i] = data[i];
+		// Add header type code and number of data cells
+		tableInteriorPageHeader.add(PageType.TABLE_INTERIOR_PAGE.getByteCode());
+		tableInteriorPageHeader.add(getNumOfCells());
+		
+		// Convert `startOfCellPointers` to bytes and add to header
+		for(byte b : shortToBytes(getStartOfCellPointers())) {
+			tableInteriorPageHeader.add(b);
 		}
 		
-		// Return new data cell
-		return new TableInteriorCell(payloadBytes, offset);
+		// Convert `nextPagePointer` to bytes and add to header
+		for(byte b: intToBytes(this.nextPagePointer)) {
+			tableInteriorPageHeader.add(b);
+		}
+		return tableInteriorPageHeader;
 	}
 	
-	/**
-	 * Gets the best location to insert a cell into a page depending using the size of an Interior cell<br>
-	 *
-	 * The DataCells are sorted by their location within the page, normally they are sorted by rowId<br>
-	 *
-	 * It looks for the first free space and inserts it, if there are none it adds it to the end of the page
-	 *
-	 * @param newEntrySumOfTextFields ignored for Interior node
-	 * @param config a TableConfig class representing the configuration of the tree based on the table's
-	 *                  columns
-	 * @return the address of the best location for an insertion
-	 */
-	@Override
-	public int getFreeCellLocation(int newEntrySumOfTextFields, TableConfig config) {
-		if (getNumOfCells() == ZERO) {
-			return ZERO;
-		}
-		
-		// Sort array by their location within the page
-		// normally they are sorted by rowId
-		sortDataCellsByOffset();
-		int lastCellPosition = 0;
-		int currentCellPosition = 0;
-		for(DataCell c : getDataCells()) {
-			currentCellPosition = c.getPageOffset() / TABLE_INTERIOR_CELL_SIZE;
-			// If more than 1 position away from last cell then lastCellPosition+1 is free
-			if (currentCellPosition - lastCellPosition > ONE) {
-				// Fix the array order
-				sort();
-				return lastCellPosition + ONE;
-			}
-			lastCellPosition = currentCellPosition;
-		}
-		// Fix the array order
-		sort();
-		// Else all are contiguous and we fill in the next free slot
-		return getNumOfCells();
-	}
 	
 	/**
 	 * This method calculates and returns the number bytes taken up by the DataCell storage area within the page.<br>
@@ -187,7 +177,7 @@ public class TableInteriorPage extends Page{
 		// Cast to TableInteriorPage
 		TableInteriorPage that = (TableInteriorPage) o;
 		
-		return nextPagePointer == that.nextPagePointer && this.getPageNumber() == that.getPageNumber() &&
+		return this.nextPagePointer == that.getNextPagePointer() && this.getPageNumber() == that.getPageNumber() &&
 				this.getPageType() == that.getPageType() && this.getNumOfCells() == that.getNumOfCells() &&
 				this.getDataCells().equals(that.getDataCells());
 	}

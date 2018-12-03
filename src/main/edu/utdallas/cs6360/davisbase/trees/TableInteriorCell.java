@@ -17,6 +17,24 @@ import static edu.utdallas.cs6360.davisbase.Config.*;
  * @see DataCell
  */
 public class TableInteriorCell extends DataCell implements Comparable<DataCell> {
+	/**
+	 * Getter for property 'leftChildPointer'.
+	 *
+	 * @return Value for property 'leftChildPointer'.
+	 */
+	public int getLeftChildPointer() {
+		return leftChildPointer;
+	}
+	
+	/**
+	 * Setter for property 'leftChildPointer'.
+	 *
+	 * @param leftChildPointer Value to set for property 'leftChildPointer'.
+	 */
+	public void setLeftChildPointer(int leftChildPointer) {
+		this.leftChildPointer = leftChildPointer;
+	}
+	
 	// Page Number
 	private int leftChildPointer;
 	

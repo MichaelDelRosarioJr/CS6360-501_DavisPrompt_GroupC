@@ -17,6 +17,9 @@ import static edu.utdallas.cs6360.davisbase.Config.*;
  * @author Mithil Vijay
  */
 public class FileHandler {
+	/**
+	 * A logger that logs things for logging purposes
+	 */
     private static final Logger LOGGER = Logger.getLogger(FileHandler.class.getName());
 	
 	/**

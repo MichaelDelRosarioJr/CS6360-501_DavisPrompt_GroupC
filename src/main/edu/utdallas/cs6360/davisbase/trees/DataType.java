@@ -1,5 +1,9 @@
 package edu.utdallas.cs6360.davisbase.trees;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Optional;
+
 /**
  * Enum class to hold information about DataRecord column types
  * @author Charles Krol
@@ -16,12 +20,21 @@ public enum DataType {
 	SHORT_TYPE_CODE((byte)0x05, (byte)0x02),
 	INT_TYPE_CODE((byte)0x06, (byte)0x04),
 	LONG_TYPE_CODE((byte)0x07, (byte)0x08),
-	FLOAT_TYPE_CODE((byte)0x08, (byte)0x04),
+	REAL_TYPE_CODE((byte)0x08, (byte)0x04),
 	DOUBLE_TYPE_CODE((byte)0x09, (byte)0x08),
 	DATETIME_TYPE_CODE((byte)0x0A, (byte)0x08),
 	DATE_TYPE_CODE((byte)0x0B, (byte)0x08),
 	TEXT_TYPE_CODE((byte)0x0C, (byte)0x7F);
 	
+	public static final String INT_STRING = "int";
+	public static final String TINYINT_STRING = "tinyint";
+	public static final String SMALLINT_STRING = "smallint";
+	public static final String BIGINT_STRING = "bigint";
+	public static final String REAL_STRING = "real";
+	public static final String DOUBLE_STRING = "double";
+	public static final String DATETIME_STRING = "datetime";
+	public static final String DATE_STRING = "date";
+	public static final String TEXT_STRING = "text";
 	private final byte typeCode;
 	private final byte dataSize;
 	
@@ -90,26 +103,42 @@ public enum DataType {
 
 	public static DataType getDataTypeCodeFromString(String datatype) {
 		switch (datatype) {
-			case "int":
+			case INT_STRING:
 				return INT_TYPE_CODE;
-			case "tinyint":
+			case TINYINT_STRING:
 				return TINY_INT_TYPE_CODE;
-			case "smallint":
+			case SMALLINT_STRING:
 				return SHORT_TYPE_CODE;
-			case "bigint":
+			case BIGINT_STRING:
 				return LONG_TYPE_CODE;
-			case "real":
-				return FLOAT_TYPE_CODE;
-			case "double":
+			case REAL_STRING:
+				return REAL_TYPE_CODE;
+			case DOUBLE_STRING:
 				return DOUBLE_TYPE_CODE;
-			case "datetime":
+			case DATETIME_STRING:
 				return DATETIME_TYPE_CODE;
-			case "date":
+			case DATE_STRING:
 				return DATE_TYPE_CODE;
-			case "text":
+			case TEXT_STRING:
 				return TEXT_TYPE_CODE;
 			default:
 				return NULL1_TYPE_CODE;
 		}
+	}
+	
+	public static boolean sameColTypes(ArrayList<DataType> typeList1, ArrayList<DataType> typeList2) {
+		if(typeList1 == typeList2)
+			return true;
+		
+		if (Optional.ofNullable(typeList1).isPresent() ||
+				Optional.ofNullable(typeList2).isPresent() ||
+				typeList1.size() != typeList2.size()) {
+			return false;
+		}
+		
+		Collections.sort(typeList1);
+		Collections.sort(typeList2);
+		
+		return typeList1.equals(typeList2);
 	}
 }

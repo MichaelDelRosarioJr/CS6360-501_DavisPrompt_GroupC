@@ -6,6 +6,8 @@ import java.util.*;
 import java.util.logging.Logger;
 
 import static edu.utdallas.cs6360.davisbase.Config.*;
+import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.intToBytes;
+import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.shortToBytes;
 
 /**
  * Class to represent a leaf page in a file and it's cells
@@ -15,9 +17,30 @@ import static edu.utdallas.cs6360.davisbase.Config.*;
  * @author Mithil Vijay
  */
 public class TableLeafPage extends Page{
+	/**
+	 * A logger that logs things for logging purposes
+	 */
 	private static final Logger LOGGER = Logger.getLogger(TableLeafPage.class.getName());
 	private boolean textColumns;
 	private int recordSizeNoText;
+	
+	/**
+	 * Setter for property 'nextPagePointer'.
+	 *
+	 * @param nextPagePointer Value to set for property 'nextPagePointer'.
+	 */
+	public void setNextPagePointer(int nextPagePointer) {
+		this.nextPagePointer = nextPagePointer;
+	}
+	
+	/**
+	 * 4 byte page number that is the page number of the right child of the Page.<br>
+	 *
+	 * For TableLeafPages it points to the next TableLeafPage in the LinkedList of TableLeafPages at the last level
+	 * in a Table Tree(B+Tree)
+	 * @see TableLeafPage
+	 */
+	private int nextPagePointer;
 	
 	/**
 	 * *****************************
@@ -41,10 +64,10 @@ public class TableLeafPage extends Page{
 	 * @param pageNumber the page number as it will appear in the file
 	 * @param nextPagePointer the page number acting as a pointer into the right subtree
 	 */
-	TableLeafPage(PageType pageType, int pageNumber, int nextPagePointer, TableConfig config) {
-		super(pageType, pageNumber);
-		this.textColumns = config.hasTextColumns();
-		this.recordSizeNoText = config.getDataRecordSizeNoText();
+	TableLeafPage(PageType pageType, int pageNumber, int nextPagePointer, TableConfig tableConfig) {
+		super(pageType, pageNumber, tableConfig);
+		this.textColumns = tableConfig.hasTextColumns();
+		this.recordSizeNoText = tableConfig.getDataRecordSizeNoText();
 		if(pageType == PageType.TABLE_LEAF_ROOT && nextPagePointer > ZERO) { throw new
 				IllegalArgumentException("Table root leaf page with non-null next page pointer"); }
 	}
@@ -55,10 +78,10 @@ public class TableLeafPage extends Page{
 	 * @param data an array of bytes representing an entire page from a file
 	 * @param pageNumber the pageNumber as it appears in the file
 	 */
-	TableLeafPage(byte[] data, int pageNumber, TableConfig config) {
-		super(data, pageNumber);
-		this.textColumns = config.hasTextColumns();
-		this.recordSizeNoText = config.getDataRecordSizeNoText();
+	TableLeafPage(byte[] data, int pageNumber, TableConfig tableConfig) {
+		super(data, pageNumber, tableConfig);
+		this.textColumns = tableConfig.hasTextColumns();
+		this.recordSizeNoText = tableConfig.getDataRecordSizeNoText();
 	}
 	
 	/**
@@ -93,26 +116,12 @@ public class TableLeafPage extends Page{
 	}
 	
 	/**
-	 * Returns the offset within a page where a contiguous block of free space closest in size to a new TableLeafCell
-	 * inserted into a Table with text column values and is variable length as a result.
-	 * @param entrySize the size of the new variable length entry
-	 * @param map a HashMap<offset, #freeBytes> containing the pointers to and sizes of freespace
-	 * @return an offset where the new record can be inserted
+	 * Getter for property 'nextPagePointer'.
+	 *
+	 * @return Value for property 'nextPagePointer'.
 	 */
-	private int getClosestSizeOffset(int entrySize, HashMap<Integer, Integer> map) {
-		HashMap<Integer, Integer> difference = new HashMap<>();
-		
-		for(Map.Entry<Integer, Integer> entry : map.entrySet()) {
-			difference.put(entry.getKey(), (entry.getValue() - entrySize));
-		}
-		
-		int min = Collections.min(difference.values());
-		for(Map.Entry<Integer, Integer> entry: map.entrySet()) {
-			if(entry.getValue() == min) {
-				return entry.getKey();
-			}
-		}
-		throw new IllegalStateException("Error can't find min");
+	int getNextPagePointer() {
+		return nextPagePointer;
 	}
 	
 	/**
@@ -125,121 +134,36 @@ public class TableLeafPage extends Page{
 	 * *****************************
 	 */
 	/**
+	 * Method returns  8-byte array to be stored at the beginning of each page and acts as a header containing only the
+	 * most basic information associated with reconstructing it from raw bytes.
+	 * @return an 8-byte page header formatted for a TableCellPage
+	 */
+	@Override
+	public List<Byte> getHeaderBytes() {
+		ArrayList<Byte> tableLeafCellHeader = new ArrayList<>();
+		
+		// Add header type code and number of data cells
+		tableLeafCellHeader.add(PageType.TABLE_LEAF_PAGE.getByteCode());
+		tableLeafCellHeader.add(getNumOfCells());
+		
+		// Convert `startOfCellPointers` to bytes and add to header
+		for(byte b : shortToBytes(getStartOfCellPointers())) {
+			tableLeafCellHeader.add(b);
+		}
+		
+		// Convert `nextPagePointer` to bytes and add to header
+		for(byte b: intToBytes(this.nextPagePointer)) {
+			tableLeafCellHeader.add(b);
+		}
+		return tableLeafCellHeader;
+	}
+	
+	/**
 	 * TODO: printPage
 	 */
 	@Override
 	public void printPage() {
 	
-	}
-	
-	/**
-	 * Gets the best location to insert a cell into a page depending using the size of a leaf cell<br>
-	 *
-	 * If the cells are constant size (no text columns) then the cells are sorted by their location within
-	 * the page, normally they are sorted by rowId, the first available location is chosen,
-	 * if there is none then it is added at the end of the page<br>
-	 *
-	 * If this table has text columns then it gathers cells with free space between them that are large enough
-	 * to hold this entry. The difference between the actual size of the new entry and each portion of space
-	 * and the smallest value is picked.
-	 *
-	 * @param newEntrySumOfTextFields the length of all the text fields of the new entry, if 0
-	 *                                it is assumed null or no text columns.
-	 * @param config a TableConfig class representing the configuration of the tree based on the
-	 *                  table's columns
-	 * @return the address of the best location for an insertion
-	 */
-	@Override
-	public int getFreeCellLocation(int newEntrySumOfTextFields, TableConfig config) {
-		if (getNumOfCells() == ZERO) {
-			return ZERO;
-		}
-		
-		sortDataCellsByOffset();
-		
-		int entrySize;
-		
-		if(!config.hasTextColumns()) {
-			int lastCellPosition = 0;
-			int currentCellPosition = 0;
-			
-			// Sort array by their location within the page
-			// normally they are sorted by rowId
-			sortDataCellsByOffset();
-			for(DataCell c : getDataCells()) {
-
-				currentCellPosition = c.getPageOffset() / config.getDataMaxRecordSize();
-				// If more than 1 position away from last cell then lastCellPosition+1 is free
-				if (currentCellPosition - lastCellPosition > ONE) {
-					// Fix the array order
-					sort();
-					return lastCellPosition + ONE;
-				}
-				lastCellPosition = currentCellPosition;
-			}
-			// Fix the array order
-			sort();
-			// Else all are contiguous and we fill in the next free slot
-			return getNumOfCells();
-			
-		} else {
-			int currentCellOffset = 0;
-			int lastCellOffset = 0;
-			int lastCellSize = 0;
-			entrySize = config.getDataRecordSizeNoText() + newEntrySumOfTextFields;
-			
-			HashMap<Integer, Integer> freeSpaceList = new HashMap<>();
-			
-			for(DataCell c : getDataCells()) {
-				currentCellOffset = c.getPageOffset();
-				// If more than 1 position away from last cell then lastCellPosition+1 is free
-				int freeSpaceBetweenCells = currentCellOffset - (lastCellOffset + lastCellSize);
-				if (freeSpaceBetweenCells >= entrySize) {
-					freeSpaceList.put((lastCellOffset + lastCellSize), freeSpaceBetweenCells);
-				}
-				lastCellOffset = currentCellOffset;
-				lastCellSize = c.size();
-			}
-			// Else no free space fits, so append to end
-			if(freeSpaceList.isEmpty()) {
-				DataCell tmp = getDataCells().get(getNumOfCells() - 1);
-				sort();
-				return tmp.getPageOffset() + tmp.size();
-			}
-			
-			sort();
-			return getClosestSizeOffset(entrySize, freeSpaceList);
-		}
-		
-		
-	}
-	
-	/**
-	 * Given a page of bytes and an offset from the end of the page this method will return a TableLeafCell
-	 * object from that location within the page
-	 * @param data an array of bytes that make up a page from a file
-	 * @param offset an offset from the end of the file where the desired record starts
-	 * @return a TableLeafCell containing a DataRecord
-	 */
-	@Override
-	public DataCell getDataCellAtOffsetInFile(byte[] data, short offset) {
-		int beginningOfFirstCell = PAGE_SIZE - 1 - offset;
-		
-		// Get number of bytes in payload to determine record length
-		// Can't use TableConfig.getDataMaxRecordSize because of variable length Text fields
-		byte[] payloadSize = new byte[2];
-		payloadSize[0] = data[beginningOfFirstCell];
-		payloadSize[1] = data[beginningOfFirstCell - 1];
-		int totalCellBytes = 6 + ByteBuffer.wrap(payloadSize).getShort();
-		
-		// Create array and grab data cell bytes
-		byte[] payloadBytes = new byte[totalCellBytes];
-		for(int i = beginningOfFirstCell; i > beginningOfFirstCell - totalCellBytes; i--) {
-			payloadBytes[beginningOfFirstCell - i] = data[i];
-		}
-		
-		// Return new data cell
-		return new TableLeafCell(payloadBytes, offset);
 	}
 	
 	/**
@@ -289,7 +213,7 @@ public class TableLeafPage extends Page{
 		Collections.sort(this.getDataCells());
 		Collections.sort(that.getDataCells());
 		
-		return this.getNextPagePointer() == that.getNextPagePointer() && this.getPageNumber() == that.getPageNumber() &&
+		return this.nextPagePointer == that.getNextPagePointer() && this.getPageNumber() == that.getPageNumber() &&
 				this.getPageType() == that.getPageType() && this.getNumOfCells() == that.getNumOfCells() &&
 				this.getDataCells().equals(that.getDataCells());
 	}

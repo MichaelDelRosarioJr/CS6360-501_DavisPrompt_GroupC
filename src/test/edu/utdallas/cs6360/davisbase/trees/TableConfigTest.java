@@ -17,7 +17,7 @@ class TableConfigTest {
 	
 	static DataType[] colTypes = {DataType.TINY_INT_TYPE_CODE,
 			DataType.SHORT_TYPE_CODE, DataType.INT_TYPE_CODE, DataType.LONG_TYPE_CODE,
-			DataType.FLOAT_TYPE_CODE, DataType.DOUBLE_TYPE_CODE, DataType.DATETIME_TYPE_CODE,
+			DataType.REAL_TYPE_CODE, DataType.DOUBLE_TYPE_CODE, DataType.DATETIME_TYPE_CODE,
 			DataType.DATE_TYPE_CODE, DataType.TEXT_TYPE_CODE};
 	
 	static int treeOrder = 50;
