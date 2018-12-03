@@ -1,5 +1,7 @@
 package edu.utdallas.cs6360.davisbase.utils;
 
+import edu.utdallas.cs6360.davisbase.trees.DataCell;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.List;
@@ -97,6 +99,34 @@ public final class ByteHelpers {
 	public static byte[] reverseByteArray(byte[] data) {
 		for(int i = 0; i< data.length/2; i++) {
 			byte temp;
+			temp = data[i];
+			data[i] = data[data.length - 1 - i];
+			data[data.length - i - 1] = temp;
+		}
+		return data;
+	}
+	
+	/**
+	 * Reverses a byte array. Used by the various page classes to reverse/unreverse
+	 * data cells for writing to and reading from the page respectively
+	 * @param data the an array of data cell bytes to reverse
+	 * @return the reversed version of the array
+	 * @see edu.utdallas.cs6360.davisbase.trees.TableLeafPage
+	 * @see edu.utdallas.cs6360.davisbase.trees.TableInteriorCell
+	 */
+	public static int[] reverseIntArray(int[] data) {
+		for(int i = 0; i< data.length/2; i++) {
+			int temp;
+			temp = data[i];
+			data[i] = data[data.length - 1 - i];
+			data[data.length - i - 1] = temp;
+		}
+		return data;
+	}
+	
+	public static DataCell[] reverseDataCellArray(DataCell[] data) {
+		for(int i = 0; i< data.length/2; i++) {
+			DataCell temp;
 			temp = data[i];
 			data[i] = data[data.length - 1 - i];
 			data[data.length - i - 1] = temp;

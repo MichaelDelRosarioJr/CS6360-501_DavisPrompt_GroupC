@@ -255,6 +255,25 @@ public abstract class Page {
 		}
 	}
 	
+	DataCell removeCell(int rowId) {
+		int i = 0;
+		for(DataCell dataCell : this.dataCells) {
+			if (dataCell.getRowId() == rowId) {
+				return this.dataCells.remove(i);
+			}
+		}
+		return null;
+	}
+	
+	int getNextPagePointerForRowId(int rowId) {
+		Collections.reverse(this.dataCells);
+		for(DataCell dataCells: getDataCells()) {
+			if (dataCells.getRowId() <= rowId) {
+				return dataCells.getPageOffset();
+			}
+		}
+		return -ONE;
+	}
 	/**
 	 * Getter for property 'dataCells'.
 	 *
@@ -674,5 +693,21 @@ public abstract class Page {
 			}
 		}
 		return true;
+	}
+	
+	int getMaxRowId() {
+		Collections.sort(this.dataCells);
+		return this.dataCells.get(this.dataCells.size() -1).getRowId();
+	}
+	
+	int getOnlyRowId() {
+		if (this.numOfCells == ONE) {
+			return this.dataCells.get(ZERO).getRowId();
+		}
+		return  -ONE;
+	}
+	
+	DataCell getFirst() {
+		return this.dataCells.get(ZERO);
 	}
 }

@@ -24,12 +24,14 @@ public final class Config {
 	
 	
 	/**
+	 * Tree Configuration Values
 	 * Page, page header, and data cell size options
 	 */
 	public static final int PAGE_SIZE = 512;
 	public static final byte PAGE_HEADER_SIZE = 8;
 	public static final byte TABLE_INTERIOR_CELL_SIZE = 8;
 	public static final byte START_OF_TABLE_INTERIOR_ROWID = 4;
+	public static final byte ROOT_PAGE_NUMBER = 0;
 	public static final byte TABLE_LEAF_CELL_HEADER_SIZE = 6;
 	public static final int MIN_ORDER_OF_TREE = 2;
 	
@@ -44,6 +46,9 @@ public final class Config {
 	public static final int ZERO = 0;
 	public static final int ONE = 1;
 	public static final int TWO = 2;
+	public static final int THREE= 3;
+	public static final int FOUR = 4;
+	public static final int FIVE = 5;
 	
 	
 	/**
