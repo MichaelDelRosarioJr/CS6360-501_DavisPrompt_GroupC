@@ -97,11 +97,6 @@ public class TableTree {
 	private Page newLeftChild;
 	
 	/**
-	 * The largest page number in the file. This does not have anything to do with the logical ordering of the keys on
-	 * the page. Simply the last page within the tile
-	 */
-	private int largestPageNumber;
-	/**
 	 * Can used in conjunction with `largestPageNumber` to determine if a new page should be inserted at the end or if a
 	 * better location should be searched within the file.<br>
 	 *
@@ -109,33 +104,16 @@ public class TableTree {
 	 */
 	private int numOfPages;
 	
-	private int nextFreePageNum;
-	/**
-	 * TODO: Link to Metadata tables
-	 */
-	public int getRowIdCounter() {
-		return rowIdCounter;
-	}
-	
-	/**
-	 * TODO: Link to Metadata tables
-	 */
-	public void incrementRowIdCounter() {
-		this.rowIdCounter++;
-	}
-	
-	/**
-	 * TODO: Link to Metadata
-	 */
-	public void decrementRowIdCounter() {
-		this.rowIdCounter--;
-	}
+	//private Page lastPage;
 	
 	/**
 	 * To keep track of the largest rowId until IndexTables are implemented
 	 * TODO: Replace with call to index tables maybe?
 	 */
 	private int rowIdCounter;
+	
+	private int numLeafPages;
+	private int numInteriorPages;
 	
 	/**
 	 * Default constructor that sets fileName and databaseName to null and the DB type to USER
@@ -154,12 +132,16 @@ public class TableTree {
 	 * the root page/node is created which is also a leaf node.
 	 * @param databaseName the name of the user table to access
 	 */
-	public TableTree(String databaseName, ArrayList<DataType> colTypes) throws IOException {
+	public TableTree(String databaseName, ArrayList<DataType> colTypes) {
 		this.databaseName = databaseName;
 		this.databaseType = DatabaseType.USER;
 		this.fileName = FileHandler.getTableFileName(this.databaseName, this.databaseType);
 		this.treeConfig = new TableConfig(colTypes);
-		openTreeFile();
+		try {
+			openTreeFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/**
@@ -180,49 +162,58 @@ public class TableTree {
 		this.fileName = FileHandler.getTableFileName(this.databaseName, this.databaseType);
 	}
 	
-	private void splitChildPage(TableInteriorPage newParent) {
+	private void splitChildPage(TableInteriorPage parentPage) {
+		LOGGER.log(Level.INFO, "Entering splitChildPage()");
 		// Assuming a parent Interior Page
 		DataCell dataCell;
-		Page rightChild;
+		Page rightChild = null;
+		int medianRowId = this.newLeftChild.getMedianRowId();
 		
 		// If leaf Page, create a new leaf page
 		if (this.newLeftChild.isLeaf()) {
-			rightChild = newRightLeafPage(newParent);
-			for(DataCell cell : this.newLeftChild.getDataCells()) {
-				if (cell.getRowId() > this.newLeftChild.getMediaRowId()) {
-					TableLeafCell moveToRight = (TableLeafCell)this.newLeftChild.removeCell(cell.getRowId());
-					rightChild.addDataCell(moveToRight);
-				}
-			}
+			rightChild = newRightLeafPage(parentPage);
+			TableLeafPage leftChild = (TableLeafPage)this.newLeftChild;
+			moveCellsToRight(leftChild, rightChild);
 		}
 		if (this.newLeftChild.isInterior()) {
-			rightChild = newRightInteriorPage(newParent);
-			int medianRowId = this.newLeftChild.getMediaRowId();
-			for(DataCell cell : this.newLeftChild.getDataCells()) {
-				if (cell.getRowId() > medianRowId) {
-					// Move to right child,  Remove from left
-					TableInteriorCell moveToRight = (TableInteriorCell)this.newLeftChild.removeCell(cell.getRowId());
-					rightChild.addDataCell(moveToRight);
-					// If == media row ID then remove as it is now a key in the new parent
-				} else if (cell.getRowId() == medianRowId) {
-					// If == media row ID then remove as it is now a key in the new parent
-					this.newLeftChild.removeCell(cell.getRowId());
-				}
-			}
-			try {
-				// Write the new pages the disk
-				this.newLeftChild.writePage(tableFile);
-				rightChild.writePage(tableFile);
-				this.root.writePage(tableFile);
-			} catch (IOException e) {
-			
-			}
+			rightChild = newRightInteriorPage(parentPage);
+			TableInteriorPage leftChild = (TableInteriorPage) this.newLeftChild;
+			moveCellsToRight(leftChild, rightChild);
 		}
 		
+		this.newLeftChild.writePage(tableFile);
+		this.newLeftChild = null;
+		rightChild.writePage(tableFile);
+		parentPage.writePage(tableFile);
 		
+		LOGGER.log(Level.INFO, "Exiting splitChildPage()");
+	}
+	
+	public void moveCellsToRight(Page leftChild, Page rightChild) {
+		int medianRowId = leftChild.getMedianRowId();
+		ArrayList<DataCell> moveList = new ArrayList<>();
+		for(DataCell cell : leftChild.getDataCells()) {
+			if (cell.getRowId() >= medianRowId) {
+				// Move to right child,  Remove from left
+				moveList.add(leftChild.getDataCellFromRowId(cell.getRowId()));
+				// If == media row ID then remove as it is now a key in the new parent
+			}
+		}
+		// Check if it was the root and adjust the PageType
+		if (leftChild.isRoot()) {
+			if (leftChild.isLeaf()) {
+				leftChild.setPageType(PageType.TABLE_LEAF_PAGE);
+			} else {
+				leftChild.setPageType(PageType.TABLE_INTERIOR_PAGE);
+			}
+		}
+		// Move the cells over
+		leftChild.removeList(moveList);
+		rightChild.addList(moveList);
 	}
 	
 	private TableLeafPage newRightLeafPage(TableInteriorPage newParent) {
+		LOGGER.log(Level.INFO, "Entering newRightLeafPage()");
 		// Cast to TableLeafPage so we can access the subclass' getters/setters
 		TableLeafPage tmpLeafPage = (TableLeafPage) this.newLeftChild;
 		// Create new right child leaf page and store leftChild's rightPointer as the rightChild's new right pointer
@@ -230,25 +221,89 @@ public class TableTree {
 		
 		// Switch the left child's rightPointer to the right child's new page number
 		tmpLeafPage.setNextPagePointer(rightChild.getPageNumber());
+		
+		// Add pointer of new tree to old parent
+		int medianRowId = this.newLeftChild.getMedianRowId();
+		int maxIdInLeft = this.newLeftChild.getMaxRowId();
+		int minIdInLeft = this.newLeftChild.getMinRowId();
+		int maxIdInParent = newParent.getMaxRowId();
+		
+		if(newParent.isRoot() && newParent.getNumOfCells() == ONE && newParent.getMaxRowId() == newLeftChild.getMaxRowId()) {
+			// This is the first split set the rightChild as the nextPagePointer and update the leftChildPointer to
+			// the median rowId
+			newParent.getDataCells().get(ZERO).setRowId(medianRowId);
+			newParent.setNextPagePointer(rightChild.getPageNumber());
+		} else if (maxIdInParent == minIdInLeft) {
+			// Far Right Page
+			// Insert new Data Cell to point to left child as there is no pointer to this cell in the parent
+			TableInteriorCell newLeftPointer = new TableInteriorCell(medianRowId, newLeftChild.getPageNumber());
+			newParent.addDataCell(newLeftPointer);
+			// Update rightPagePointer of Parent
+			newParent.setNextPagePointer(rightChild.getPageNumber());
+		} else {
+			// Update leftChild's pointer in parent to median value
+			TableInteriorCell parentLeftPointer =
+					(TableInteriorCell) newParent.getDataCellFromRowId(maxIdInLeft);
+			parentLeftPointer.setRowId(medianRowId);
+			
+			// Go to next leaf page in LinkedList chain on bottom row of the page
+			TableLeafPage nextLeafPage = (TableLeafPage)getPage(rightChild.getNextPagePointer());
+			// Get smallest value from it, this is the rowId for the new TableInteriorCell to put in the parent
+			TableInteriorCell newRightPointer = new TableInteriorCell(nextLeafPage.getMinRowId(), rightChild.getPageNumber());
+			newParent.addDataCell(newRightPointer);
+		}
+		LOGGER.log(Level.INFO, "Exiting newRightLeafPage()");
 		return rightChild;
 	}
 	
 	private TableInteriorPage newRightInteriorPage(TableInteriorPage newParent) {
+		LOGGER.log(Level.INFO, "Entering newRightInteriorPage()");
+		
 		// Cast to TableInteriorPage so we can access the subclass' getters/setters
-		TableInteriorPage tableInteriorPage = (TableInteriorPage) this.newLeftChild;
+		TableInteriorPage newInteriorLeftChild = (TableInteriorPage) this.newLeftChild;
 		
 		// Create new right child interior page and store leftChild's rightPointer as the rightChild's new right pointer
-		TableInteriorPage rightChild = new TableInteriorPage(PageType.TABLE_INTERIOR_PAGE, getNewPageNumber(), tableInteriorPage.getNextPagePointer(), treeConfig);
+		TableInteriorPage newInteriorRightChild = new TableInteriorPage(PageType.TABLE_INTERIOR_PAGE, getNewPageNumber(),
+				newInteriorLeftChild.getNextPagePointer(), treeConfig);
 		
-		// Switch the left child's rightPointer to the right child's new page number
-		// Get the rowId that is being promoted and save it's pointer
-		// as that is the one that will be removed during the splot
-		int medianOfOldParent = this.newLeftChild.getMediaRowId();
-		TableInteriorCell promoteded = ((TableInteriorCell)this.newLeftChild.getDataCells().get(medianOfOldParent));
 		
-		// Save the leftChildPointer of the newly promoted cell and assign it as the rightChildPointer of the page
-		tableInteriorPage.setNextPagePointer(promoteded.getLeftChildPointer());
-		return rightChild;
+		int medianRowId = newInteriorLeftChild.getMedianRowId();
+		int maxIdInLeft = newInteriorLeftChild.getMaxRowId();
+		int minIdinLeft = newInteriorLeftChild.getMinRowId();
+		int maxIdInParent = newParent.getMaxRowId();
+		
+		// if leftChild.pageNum = parent.pageNum, then before the split
+		// this was a far-right page.
+		if(newParent.isRoot() && newParent.getNumOfCells() == ONE && newParent.getMaxRowId() == newLeftChild.getMaxRowId()) {
+			// This is the first split set the rightChild as the nextPagePointer and update the leftChildPointer to
+			// the median rowId
+			newParent.getDataCells().get(ZERO).setRowId(medianRowId);
+			newParent.setNextPagePointer(newInteriorRightChild.getPageNumber());
+		} else if(minIdinLeft >= maxIdInParent) {
+			// Page is part of the alt-right
+			newParent.setNextPagePointer(newInteriorRightChild.getPageNumber());
+			
+			// Add new pointer to left child in parent and store it's median rowId as the key
+			TableInteriorCell newLeftPointerInParent = new TableInteriorCell(medianRowId,
+					newInteriorLeftChild.getPageNumber());
+			
+			newParent.addDataCell(newLeftPointerInParent);
+		} else {
+			
+			// Get smallest pointer from next bucket over(to the right) which will be the rowId value for the pointer of
+			// the new right child. Must get this before updating the leftPointer to the Median ID
+			int rightChildPointerKey = newParent.getCellRightNeighbor(maxIdInLeft).getRowId();
+			
+			// Update leftChild's pinter in the partent to median value
+			TableInteriorCell pointerToLeft = newParent.getDataCellFromPagePointer(newInteriorLeftChild.getPageNumber());
+			pointerToLeft.setRowId(medianRowId);
+			
+			// Create a new cell to stuff into the parent for the right child
+			TableInteriorCell newRightPointer = new TableInteriorCell(rightChildPointerKey,
+					newInteriorRightChild.getPageNumber());
+			newParent.addDataCell(newRightPointer);
+		}
+		return newInteriorRightChild;
 	}
 	
 	/**
@@ -260,56 +315,79 @@ public class TableTree {
 	 * hold the DataRecords
 	 * @param colTypes A List of byte type codes to represent the various data types that will be stored in this file
 	 * @param colValues the actual values of each column for this new row.
-	 * @throws IOException
+	 *                  TODO:
+	 * @return the 4-byte of the newly inserted record, -1 if the insert failed
 	 */
 	public void insert(ArrayList<DataType> colTypes, ArrayList<String> colValues){
+		LOGGER.log(Level.INFO, "Entering insert(colTypes, colValues)");
 		if (Optional.ofNullable(this.root).isPresent()) {
 			throw new IllegalStateException("Tree can't have null root");
 		}
 		
 		// Check if valid insert
-		validInsert(colTypes, colValues);
-		// Create new LeafCell so less to pass around
-		insert(new TableLeafCell(getRowIdCounter(), new DataRecord(colTypes, colValues)));
-		
-		
+		if (validInsert(colTypes, colValues)) {
+			LOGGER.log(Level.INFO, "Valid insert");
+			// Create new LeafCell so less to pass around
+			int newRowId = getRowIdCounter();
+			insert(new TableLeafCell(newRowId, new DataRecord(colTypes, colValues)));
+			
+		}
 		// TODO: Count insertions, add in Config class
+		LOGGER.log(Level.INFO, "Exiting insert(colTypes, colValues)");
+	}
+	
+	public void insert(DataRecord dataRecord) {
+		LOGGER.log(Level.INFO, "Entering insert(DataRecord)");
+		if (!Optional.ofNullable(this.root).isPresent()) {
+			throw new IllegalStateException("Tree can't have null root");
+		}
+		
+		if (validInsert(dataRecord)) {
+			LOGGER.log(Level.INFO, "Valid insert");
+			int newRowId = getRowIdCounter();
+			insert(new TableLeafCell(newRowId, dataRecord));
+		}
+		LOGGER.log(Level.INFO, "Exiting insert(DataRecord)");
 	}
 	
 	private void insert(TableLeafCell newRecord) {
+		LOGGER.log(Level.INFO, "Entering insert(TableLeafCell)");
 		// Check if root is is full and needs splitting
 		if (this.root.isFull(this.treeConfig)) {
 			// Save old root for the split function
 			this.newLeftChild = this.root;
 			
-			// Get the rowId that is the median rowId of the page
-			// Which is the rowId that should be promoted to the new root
-			int rootMedianPointer = this.root.getMediaRowId();
-			
 			// Get the next free page number for its new position in the file
 			this.newLeftChild.setPageNumber(getNewPageNumber());
 			
 			// Create new root and save it since there will be no way to save it later
-			this.root = new TableInteriorPage(PageType.TABLE_INTERIOR_PAGE, 0, this.treeConfig);
+			TableInteriorPage tmpNewPage = new TableInteriorPage(PageType.TABLE_INTERIOR_ROOT, ZERO, this.treeConfig);
 			
 			// Create a new data cell to store in the new root page that points to the left child
-			TableInteriorCell newRootCell = new TableInteriorCell(rootMedianPointer, this.newLeftChild.getPageNumber());
+			TableInteriorCell newRootCell = new TableInteriorCell(this.newLeftChild.getMaxRowId(), this.newLeftChild.getPageNumber());
 			
-			this.root.addDataCell(newRootCell);
+			tmpNewPage.addDataCell(newRootCell);
+			
+			this.root = tmpNewPage;
+			
 			// Run split root
-			splitChildPage((TableInteriorPage) this.root);
-			//insertNonFull(, k)
+			splitChildPage(tmpNewPage);
+			//this.lastPage = this.root;
+			insertNonFull(tmpNewPage, newRecord);
+		} else {
+			//this.lastPage = this.root;
+			insertNonFull(this.root, newRecord);
 		}
-		
-		// traverse down the either insert into the next page if leaf or continue traversing if interior page
-		
+		LOGGER.log(Level.INFO, "Exiting insert(TableLeafCell)");
 	}
 	/**
 	 *
 	 * @param currentPage the page following the page that called this method
-	 * @param rowId a 4-byte integer rowId
+	 * @param tableLeafCell the new DataRecord to insert wrapped in a tableLeafCell with it's rowId
 	 */
-	private void insertNonFull(Page currentPage, int rowId, TableLeafCell tableLeafCell) throws IOException {
+	private void insertNonFull(Page currentPage, TableLeafCell tableLeafCell) {
+		LOGGER.log(Level.INFO, "Entering insertNonFull()");
+		int rowId = tableLeafCell.getRowId();
 		if(currentPage.isLeaf()) {
 			// In Leaf, double check there isn't a duplicate and if there throw an exception, otherwise insert
 			TableLeafPage leaf = (TableLeafPage)currentPage;
@@ -318,28 +396,38 @@ public class TableTree {
 				throw new IllegalStateException("Error, there is a duplicate entry");
 			}
 			currentPage.addDataCell(tableLeafCell);
-		} else {
+			incrementRowIdCounter();
+			currentPage.writePage(tableFile);
+			/*
+			try {
+				currentPage.writePage(tableFile);
+			} catch (IOException e) {
+				LOGGER.log(Level.SEVERE, e.toString());
+			}*/
+		}
+		if(currentPage.isInterior()) {
+			TableInteriorPage currentInteriorPage = (TableInteriorPage)currentPage;
 			// Get the next page number to traverse to and load it from the file
-			int nextPageNum = currentPage.getNextPagePointerForRowId(tableLeafCell.getRowId());
-			Page nextPage = ((TableInteriorPage)getPage(nextPageNum));
+			int nextPageNum = currentInteriorPage.getNextPage(rowId);
+			Page nextPage = getPage(nextPageNum);
 			int nextPagePtr;
 			if (nextPage.isFull(treeConfig)) {
 				this.newLeftChild = nextPage;
-				splitChildPage((TableInteriorPage)currentPage);
-				if (rowId > nextPage.getMaxRowId()) {
+				splitChildPage((TableInteriorPage) currentPage);
+				
+				if (rowId >= nextPage.getMaxRowId()) {
 					nextPagePtr = ((TableInteriorPage) currentPage).getNextPagePointer();
 				} else {
-					nextPagePtr = ((TableInteriorPage) currentPage).getFirst().getPageOffset();
+					nextPagePtr = ((TableInteriorCell)currentPage.getFirst()).getLeftChildPointer();
 				}
+				this.newLeftChild = null;
 				nextPage = getPage(nextPagePtr);
-				insertNonFull(nextPage, rowId, tableLeafCell);
 			}
+			//this.lastPage = currentPage;
+			insertNonFull(nextPage, tableLeafCell);
 		}
-	}
-	
-	
-	private void treeSearch(Page treePage, int rowId) {
-		;
+		//this.lastPage = null;
+		LOGGER.log(Level.INFO, "Exiting insertNonFull()");
 	}
 	
 	/**
@@ -357,6 +445,13 @@ public class TableTree {
 		if(colTypes.size() != colValues.size()) {
 			throw new IllegalArgumentException("The column type arrays and the column values array have different " +
 					"sizes");
+		}
+		return true;
+	}
+	
+	boolean validInsert(DataRecord dataRecord) {
+		if(!DataType.sameColTypes(dataRecord.getColumnDataTypes(), treeConfig.getColTypes())) {
+			throw new IllegalArgumentException("Given column data types do not match this tree's column data types");
 		}
 		return true;
 	}
@@ -387,15 +482,19 @@ public class TableTree {
 	 * @throws IOException if it has a problem reading the file
 	 */
 	private void openTreeFile() throws IOException {
+		LOGGER.log(Level.INFO, "Entering openTreeFile()");
 		if (!FileHandler.doesTableExist(this.fileName)) {
+			LOGGER.log(Level.INFO, "File DNE, must create new table file");
 			// Need to create new file
 			LOGGER.log(Level.INFO, "Creating new table file for: {0}", this.databaseName);
 			createTreeFile();
 		} else {
+			LOGGER.log(Level.INFO, "Entering table exists, need to read from file");
 			this.tableFile = new RandomAccessFile(this.fileName, READ_WRITE_MODE);
 			LOGGER.log(Level.INFO, "Table {0} exists", this.databaseName);
 			getRootPage();
 		}
+		LOGGER.log(Level.INFO, "Exiting openTreeFile()");
 	}
 	
 	/**
@@ -403,11 +502,13 @@ public class TableTree {
 	 * @throws IOException when it can't write
 	 */
 	private void createTreeFile() throws IOException{
+		LOGGER.log(Level.INFO, "Entering createTreeFile()");
 		// Create file and set length equal to PAGE_SIZE
 		FileHandler.createTableFile(this.fileName);
 		LOGGER.log(Level.INFO, "New table file for {0} created", this.databaseName);
 		this.tableFile = new RandomAccessFile(this.fileName, READ_WRITE_MODE);
 		this.root = createNewRootLeaf();
+		LOGGER.log(Level.INFO, "Exiting createTreeFile()");
 	}
 	
 	/**
@@ -418,10 +519,12 @@ public class TableTree {
 	 * @return the new root leaf page just created so it can be saved with for later use
 	 */
 	private TableLeafPage createNewRootLeaf() throws IOException {
-		TableLeafPage tableLeafPage = new TableLeafPage(PageType.TABLE_LEAF_ROOT, ZERO, ZERO, treeConfig);
+		LOGGER.log(Level.INFO, "Entering createNewRootLeaf()");
+		TableLeafPage tableLeafPage = new TableLeafPage(PageType.TABLE_LEAF_ROOT, ZERO, -ONE, treeConfig);
 		tableLeafPage.writePage(this.tableFile);
 		LOGGER.log(Level.INFO, "New Root Leaf for: {0}: ", this.databaseName);
-		nextFreePageNum++;
+		numOfPages++;
+		LOGGER.log(Level.INFO, "Exiting createNewRootLeaf()");
 		return tableLeafPage;
 	}
 	
@@ -432,11 +535,7 @@ public class TableTree {
 	 */
 	private void getRootPage() {
 		// Prepare array and file to read in the root page data
-		try {
-			this.root = getPage(ROOT_PAGE_NUMBER);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		this.root = getPage(ROOT_PAGE_NUMBER);
 	}
 	
 	/**
@@ -451,15 +550,20 @@ public class TableTree {
 	 * TableInteriorPage/TableLeafPage/IndexInteriorPage/IndexLeafPage
 	 * @throws IOException when there was a problem reading from the file
 	 */
-	private Page getPage(int pageNumber) throws IOException{
-		byte[] pageBytes = new byte[PAGE_SIZE];
-		this.tableFile.seek(PAGE_SIZE * pageNumber);
-		this.tableFile.read(pageBytes);
-		
-		// Return a different subclass depending on the PageType value
-		return PageType.getEnum(pageBytes[ZERO]) == PageType.TABLE_LEAF_PAGE ?
-				new TableLeafPage(pageBytes, pageNumber, treeConfig) :
-				new TableInteriorPage(pageBytes, pageNumber, treeConfig);
+	private Page getPage(int pageNumber) {
+		try {
+			byte[] pageBytes = new byte[PAGE_SIZE];
+			this.tableFile.seek(PAGE_SIZE * pageNumber);
+			this.tableFile.read(pageBytes);
+			
+			// Return a different subclass depending on the PageType value
+			return PageType.getEnum(pageBytes[ZERO]) == PageType.TABLE_LEAF_PAGE ?
+					new TableLeafPage(pageBytes, pageNumber, treeConfig) :
+					new TableInteriorPage(pageBytes, pageNumber, treeConfig);
+		} catch (IOException e) {
+			LOGGER.log(Level.SEVERE, e.toString());
+		}
+		return null;
 	}
 	
 	/**
@@ -470,18 +574,93 @@ public class TableTree {
 	 * 		 Something like binary search?
 	 */
 	private int getNewPageNumber() {
-		if (this.largestPageNumber == this.numOfPages) {
-			return this.largestPageNumber + ONE;
+		try {
+			int maxPagesInFile = (int)(tableFile.length() / PAGE_SIZE);
+			if (maxPagesInFile == numOfPages || maxPagesInFile < this.numOfPages) {
+				int newPageNum = this.numOfPages;
+				incrementPages();
+				return newPageNum;
+			}
+			// Must find empty page in file
+			for(int i = ZERO; i < this.numOfPages; i++) {
+				this.tableFile.seek(i * PAGE_SIZE);
+				byte[] pageTypeCode = new byte[ONE];
+				this.tableFile.read(pageTypeCode);
+				if (pageTypeCode[ZERO] == ZERO) {
+					incrementPages();
+					return i;
+				}
+			}
+		} catch (IOException e) {
+			LOGGER.log(Level.SEVERE, e.toString());
 		}
 		return -ONE;
 	}
 	
 	/**
-	 * A method that determines if a sequence of non-repeating numbers is free of gaps using only the minimum value and
-	 * the sum of the values.
-	 * @param sum
+	 * TODO: Link to Metadata tables
 	 */
-	static void isInSequence(int sum) {
+	public int getRowIdCounter() {
+		LOGGER.log(Level.INFO, "Returning rowIdCounter value: {0}", rowIdCounter);
+		return rowIdCounter;
+	}
 	
+	/**
+	 * TODO: Link to Metadata tables
+	 */
+	public void incrementRowIdCounter() {
+		this.rowIdCounter++;
+		LOGGER.log(Level.INFO, "Incremented rowIdCounter new value: {0}", rowIdCounter);
+	}
+	
+	/**
+	 * TODO: Link to Metadata
+	 */
+	public void decrementRowIdCounter() {
+		this.rowIdCounter--;
+		LOGGER.log(Level.INFO, "Decremented rowIdCounter new value: {0}", rowIdCounter);
+	}
+	
+	/**
+	 * Getter for property 'fileName'.
+	 *
+	 * @return Value for property 'fileName'.
+	 */
+	public String getFileName() {
+		return fileName;
+	}
+	
+	/**
+	 * Setter for property 'fileName'.
+	 *
+	 * @param fileName Value to set for property 'fileName'.
+	 */
+	public void setFileName(String fileName) {
+		this.fileName = fileName;
+	}
+	
+	public long getFileSize() {
+		try {
+			return tableFile.length();
+		} catch (IOException e) {
+			LOGGER.log(Level.SEVERE, e.toString());
+		}
+		return -ONE;
+	}
+	
+	int getCurrentHeight() {
+		if (this.root.isLeaf()) {
+			return ZERO;
+		}
+		TableInteriorPage interiorRoot = (TableInteriorPage)this.root;
+		return getCurrentHeight(getPage(interiorRoot.getNextPagePointer()));
+	}
+	
+	int getCurrentHeight(Page page) {
+		if (page.isLeaf()) {
+			return ONE;
+		}
+		TableInteriorPage interiorPage = (TableInteriorPage)page;
+		return getCurrentHeight(getPage(interiorPage.getNextPagePointer())) + ONE;
 	}
 }

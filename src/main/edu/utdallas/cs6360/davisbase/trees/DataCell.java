@@ -15,8 +15,6 @@ import java.util.Optional;
 public abstract class DataCell implements Comparable<DataCell> {
 	private int rowId;
 	
-	private short pageOffset;
-	
 	/**
 	 * *****************************
 	 * *****************************
@@ -32,7 +30,6 @@ public abstract class DataCell implements Comparable<DataCell> {
 	 */
 	DataCell() {
 		this.rowId = -1;
-		this.pageOffset = -1;
 	}
 	
 	/**
@@ -44,27 +41,7 @@ public abstract class DataCell implements Comparable<DataCell> {
 		this.rowId = rowId;
 	}
 	
-	/**
-	 * Constructor to create a new DataCell with the given rowId and dataCellOffset
-	 * @param rowId the ID of the row to create a new cell for and it's offset within the page
-	 * @param pageOffset the location of the cell within the page relative to the end of the page
-	 */
-	DataCell(int rowId, short pageOffset) {
-		this.rowId = rowId;
-		this.pageOffset = pageOffset;
-	}
 	
-	
-	/**
-	 * Constructor that initializes a DataCell when given a byte representation of
-	 * its row ID
-	 * @param data the byte representation of the DataCell's rowId
-	 * @param pageOffset the location of the cell within the page relative to the end of the page
-	 */
-	DataCell(byte[] data, short pageOffset) {
-		this.rowId = ByteBuffer.wrap(data).getInt();
-		this.pageOffset = pageOffset;
-	}
 	
 	/**
 	 * Constructor that initializes a DataCell when given a byte representation of
@@ -107,23 +84,6 @@ public abstract class DataCell implements Comparable<DataCell> {
 	 * *****************************
 	 * *****************************
 	 */
-	/**
-	 * Getter for property 'pageOffset'.
-	 *
-	 * @return Value for property 'pageOffset'.
-	 */
-	public short getPageOffset() {
-		return pageOffset;
-	}
-	
-	/**
-	 * Setter for property 'pageOffset'.
-	 *
-	 * @param pageOffset Value to set for property 'pageOffset'.
-	 */
-	public void setPageOffset(short pageOffset) {
-		this.pageOffset = pageOffset;
-	}
 	
 	/**
 	 * Getter for property 'rowId'.
@@ -133,6 +93,10 @@ public abstract class DataCell implements Comparable<DataCell> {
 	int getRowId() {
 		return rowId;
 	}
+	void setRowId(int id) {
+		this.rowId = id;
+	}
+	
 	
 	
 	/**
@@ -169,18 +133,11 @@ public abstract class DataCell implements Comparable<DataCell> {
 		
 		DataCell dataCell = (DataCell) o;
 		
-		if (rowId != dataCell.rowId) { return false; }
-		return pageOffset == dataCell.pageOffset;
+		return rowId == dataCell.rowId ;
 	}
 	
-	/**
-	 * Hash code for completeness
-	 * @return hashCode for a DataCell
-	 */
 	@Override
 	public int hashCode() {
-		int result = rowId;
-		result = 31 * result + (int) pageOffset;
-		return result;
+		return rowId;
 	}
 }

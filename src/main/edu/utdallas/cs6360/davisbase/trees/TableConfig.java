@@ -184,7 +184,7 @@ public class TableConfig {
 	 * can fit on an interior page
 	 */
 	private int calculateTreeOrder() {
-		return (PAGE_SIZE - PAGE_HEADER_SIZE) / (Short.BYTES + TABLE_INTERIOR_CELL_SIZE);
+		return ONE+((PAGE_SIZE - PAGE_HEADER_SIZE) / (Short.BYTES + TABLE_INTERIOR_CELL_SIZE));
 	}
 	
 	/**
@@ -209,9 +209,9 @@ public class TableConfig {
 	 * 	 * can fit on an interior page
 	 */
 	private int calculateLeafPageDegree() {
-		return (PAGE_SIZE - PAGE_HEADER_SIZE) /
+		return ONE + ((PAGE_SIZE - PAGE_HEADER_SIZE) /
 				(Short.BYTES + TABLE_LEAF_CELL_HEADER_SIZE + Byte.BYTES + this.numOfColumns +
-						this.dataMaxRecordSize);
+						this.dataMaxRecordSize));
 	}
 	
 	/**
@@ -313,7 +313,8 @@ public class TableConfig {
 	 * @return the maximum number of entries
 	 */
 	public int getMaxInteriorPageCells() {
-		return (2*this.treeOrder) - 1;
+		//return (2*this.treeOrder) - 1;
+		return treeOrder - ONE;
 	}
 	
 	/**
@@ -321,7 +322,7 @@ public class TableConfig {
 	 * @return the minimum number of entries
 	 */
 	public int getMinInteriorPageCell() {
-		return this.treeOrder - 1;
+		return (this.treeOrder - ONE) / TWO;
 	}
 	
 	/**
@@ -329,7 +330,8 @@ public class TableConfig {
 	 * @return the maximum number of entries
 	 */
 	public int getMaxLeafPageRecords() {
-		return (2*this.leafPageDegree) - 1;
+		//return (2*this.leafPageDegree) - 1;
+		return leafPageDegree - ONE;
 	}
 	
 	/**
@@ -337,7 +339,7 @@ public class TableConfig {
 	 * @return the minimum number of entries
 	 */
 	public int getMinLeafPageRecords() {
-		return this.leafPageDegree - 1;
+		return (this.leafPageDegree - ONE) / TWO;
 	}
 	
 	void logTreeConfig() {

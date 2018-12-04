@@ -53,7 +53,7 @@ public class FileHandler {
      *
      * @param name Directory name
      */
-    private static void createDatabaseDirectory(String name) {
+    public static void createDatabaseDirectory(String name) {
         try {
             File dataDir = new File(name);
             if (!dataDir.exists()) {
@@ -109,4 +109,19 @@ public class FileHandler {
             return false;
         }
     }
+    
+    public static void deleteDirectoryWithFiles(String dir) {
+    	File directory = new File(dir);
+	    String[] files = directory.list();
+	    for(String s: files){
+		    File currentFile = new File(directory.getPath(),s);
+		    currentFile.delete();
+	    }
+	    directory.delete();
+    }
+	
+	public static void deleteFile(String dir) {
+		File file = new File(dir);
+		file.delete();
+	}
 }

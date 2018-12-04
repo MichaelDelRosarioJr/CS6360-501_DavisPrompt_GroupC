@@ -72,29 +72,14 @@ public class TableInteriorCell extends DataCell implements Comparable<DataCell> 
 	 * First the rowId is grabbed and sent to the super constrcutor<br>
 	 * Then the leftChildPointer is stored
 	 * @param data the byte representation of a TableInteriorCell stored in a file
-	 * @param offset the location of the data cell within the page
 	 */
-	TableInteriorCell(byte[] data, short offset) {
-		super(Arrays.copyOfRange(data, START_OF_TABLE_INTERIOR_ROWID, START_OF_TABLE_INTERIOR_ROWID + Integer.BYTES),
-				offset);
+	TableInteriorCell(byte[] data) {
+		super(Arrays.copyOfRange(data, START_OF_TABLE_INTERIOR_ROWID, START_OF_TABLE_INTERIOR_ROWID + Integer.BYTES));
 		ByteBuffer headerBuffer = ByteBuffer.wrap(data);
 		this.leftChildPointer = headerBuffer.getInt();
 	}
 	
-	/**
-	 * Constructor that initializes a TableInteriorCell from it's byte
-	 * representation in the file<br>
-	 *
-	 * First the rowId is grabbed and sent to the super constrcutor<br>
-	 * Then the leftChildPointer is stored
-	 * @param data the byte representation of a TableInteriorCell stored in a file
-	 */
-	TableInteriorCell(byte[] data) {
-		super(Arrays.copyOfRange(data, START_OF_TABLE_INTERIOR_ROWID, START_OF_TABLE_INTERIOR_ROWID + Integer.BYTES),
-				(short) ZERO);
-		ByteBuffer headerBuffer = ByteBuffer.wrap(data);
-		this.leftChildPointer = headerBuffer.getInt();
-	}
+	
 	
 	/**
 	 * *****************************

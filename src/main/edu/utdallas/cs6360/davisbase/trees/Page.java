@@ -5,10 +5,7 @@ import edu.utdallas.cs6360.davisbase.utils.ByteHelpers;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -66,7 +63,6 @@ public abstract class Page {
 	 * can take on. Maximum possible number of records on a page is 127, the actual is much less as they would all have
 	 * to be 1 column entries of byte values based on the default PAGE_SIZE = 512.
 	 */
-	private byte numOfCells;
 	
 	/**
 	 * The start of the data cell pointers from the end of the page
@@ -125,7 +121,6 @@ public abstract class Page {
 		this.pageType = pageType;
 		this.pageNumber = pageNumber;
 		this.dataCells = new ArrayList<>(dataCells);
-		this.numOfCells = (byte)this.dataCells.size();
 		this.tableConfig = tableConfig;
 	}
 	
@@ -135,6 +130,7 @@ public abstract class Page {
 	 * @param pageNumber the ordering of the page within the file
 	 */
 	Page(byte[] data, int pageNumber, TableConfig tableConfig) {
+		this.pageNumber = pageNumber;
 		// TODO Check page size here
 		if(data.length != PAGE_SIZE) {
 			LOGGER.log(Level.SEVERE, "Pages must be exactly: {0}", PAGE_SIZE);
@@ -172,6 +168,8 @@ public abstract class Page {
 		// Initialize the data cells from the page
 		initDataCellsFromBytes(Arrays.copyOfRange(data, data.length - startOfDataCellPointers, data.length),
 				numCells, startOfDataCellPointers);
+		
+		this.startOfCellPointers = 0;
 	}
 	
 	/**
@@ -205,13 +203,6 @@ public abstract class Page {
 	}
 	
 	/**
-	 * Sorts the DataCells based on their location within the Page file
-	 */
-	void sortDataCellsByOffset() {
-		this.dataCells.sort((o1, o2) -> o1.getPageOffset() - o2.getPageOffset());
-	}
-	
-	/**
 	 * *****************************
 	 * *****************************
 	 * *****************************
@@ -228,18 +219,17 @@ public abstract class Page {
 	private void addDataCell(byte[] data) {
 		if(isLeaf()) {
 			this.dataCells.add(new TableLeafCell(data));
-			incrementNumOfCells();
 		} else {
-			incrementNumOfCells();
 			this.dataCells.add(new TableInteriorCell(data));
 		}
+		Collections.sort(this.dataCells);
 	}
 	
 	void addDataCell(DataCell data) {
 		if(isLeaf()) {
 			if (data instanceof TableLeafCell) {
 				this.dataCells.add(data);
-				incrementNumOfCells();
+				Collections.sort(this.dataCells);
 				this.startOfCellPointers += data.size();
 			} else {
 				throw new IllegalArgumentException("Error: Cannot add non-Leaf data cell to a Leaf page");
@@ -247,7 +237,7 @@ public abstract class Page {
 		} else {
 			if (data instanceof  TableInteriorCell) {
 				this.dataCells.add(data);
-				incrementNumOfCells();
+				Collections.sort(this.dataCells);
 				this.startOfCellPointers += TABLE_INTERIOR_CELL_SIZE;
 			} else {
 				throw new IllegalArgumentException("Error: Cannot add an Interior data cell to a Leaf page");
@@ -265,15 +255,67 @@ public abstract class Page {
 		return null;
 	}
 	
+	int getNextPageForRowId(int rowId) {
+		Collections.sort(this.dataCells);
+		int nextPage = getNextPagePointerForRowId(rowId);
+		Collections.sort(this.dataCells);
+		return nextPage;
+	}
+	
 	int getNextPagePointerForRowId(int rowId) {
+		if (rowId > getMaxRowId()) {
+			return -ONE;
+		}
 		Collections.reverse(this.dataCells);
 		for(DataCell dataCells: getDataCells()) {
-			if (dataCells.getRowId() <= rowId) {
-				return dataCells.getPageOffset();
+			if (rowId > dataCells.getRowId()) {
+				return ((TableInteriorCell)dataCells).getLeftChildPointer();
 			}
 		}
 		return -ONE;
 	}
+	
+	TableInteriorCell getDataCellForRowId(int rowId) {
+		TableInteriorCell out = getDataCellFromParentForRowId(rowId);
+		Collections.sort(this.dataCells);
+		return out;
+	}
+	
+	TableInteriorCell getDataCellFromParentForRowId(int rowId) {
+		Collections.reverse(this.dataCells);
+		for(DataCell dataCells: getDataCells()) {
+			if (dataCells.getRowId() <= rowId) {
+				return (TableInteriorCell)dataCells;
+			}
+		}
+		return null;
+	}
+	
+	TableInteriorCell getDataCellFromPagePointer(int pageNumber) {
+		for (DataCell dataCell: dataCells) {
+			TableInteriorCell tableInteriorCell = (TableInteriorCell)dataCell;
+			if (tableInteriorCell.getLeftChildPointer() == pageNumber) {
+				return tableInteriorCell;
+			}
+		}
+		TableInteriorCell NULL_CELL = null;
+		return NULL_CELL;
+	}
+	
+	DataCell getCellRightNeighbor(int rowId) {
+		Collections.sort(this.dataCells);
+		int i = ZERO;
+		for (DataCell dataCell: dataCells) {
+			if(dataCell.getRowId() == rowId) {
+				return this.dataCells.get(i + ONE);
+			}
+			i++;
+		}
+		return null;
+	}
+	
+	
+	
 	/**
 	 * Getter for property 'dataCells'.
 	 *
@@ -313,22 +355,7 @@ public abstract class Page {
 	 * @return Value for property 'numOfCells'.
 	 */
 	byte getNumOfCells() {
-		return numOfCells;
-	}
-	
-	/**
-	 * Getter for property 'dataCells'.
-	 *
-	 * @return Value for property 'dataCells'.
-	 */
-	public List<Byte> getDataCellOffsetsBytes() {
-		ArrayList<Byte> output = new ArrayList<>();
-		for (DataCell offset : this.dataCells) {
-			for (byte b : shortToBytes(offset.getPageOffset())) {
-				output.add(b);
-			}
-		}
-		return output;
+		return (byte)this.dataCells.size();
 	}
 	
 	/**
@@ -392,7 +419,7 @@ public abstract class Page {
 	 */
 	int getMedianRowId() {
 		Collections.sort(this.dataCells);
-		return this.dataCells.get((this.numOfCells + ONE) / TWO).getRowId();
+		return this.dataCells.get((this.dataCells.size() + ONE) / TWO).getRowId();
 	}
 	/**
 	 * Check if the page is full and needs splitting<br>
@@ -403,35 +430,20 @@ public abstract class Page {
 	 */
 	boolean isFull(TableConfig config) {
 		if (isLeaf()) {
-			return config.getMaxLeafPageRecords() == this.numOfCells;
+			return this.dataCells.size() >= config.getMaxLeafPageRecords();
 		} else {
-			return config.getMaxInteriorPageCells() == this.numOfCells;
+			return this.dataCells.size() >= config.getMaxInteriorPageCells();
 		}
 	}
 	
 	boolean needMerge(TableConfig config) {
-		if(isRoot()) { return this.numOfCells <= ONE; }
+		if(isRoot()) { return this.dataCells.size() <= ONE; }
 		else if (isLeaf()) {
-			return config.getMinLeafPageRecords() >= this.numOfCells;
+			return config.getMinLeafPageRecords() >= this.dataCells.size();
 		} else {
-			return config.getMinInteriorPageCell() >= this.numOfCells;
+			return config.getMinInteriorPageCell() >= this.dataCells.size();
 		}
 	}
-	
-	/**
-	 * Increases the number of cells on the page
-	 */
-	void incrementNumOfCells() {
-		numOfCells++;
-	}
-	
-	/**
-	 * Decreases the number of cells on the page
-	 */
-	void decrementNumOfCells() {
-		numOfCells--;
-	}
-	
 	/**
 	 * Sorts the DataCell ArrayList based on rowId
 	 */
@@ -444,7 +456,7 @@ public abstract class Page {
 	 *
 	 * @return true if the page is empty, false otherwise
 	 */
-	boolean isEmpty() { return this.numOfCells == ZERO; }
+	boolean isEmpty() { return this.dataCells.size() == ZERO; }
 	
 	/**
 	 * Check if the page is a leaf page
@@ -489,7 +501,7 @@ public abstract class Page {
 		return this.tableConfig.hasTextColumns();
 	}
 	
-	int getRecordSideNoText() {
+	int getRecordSizeNoText() {
 		return this.tableConfig.getDataRecordSizeNoText();
 	}
 	
@@ -590,23 +602,22 @@ public abstract class Page {
 	 * @param treeFile the RandomAccessFile associated with the page's database file
 	 * @throws IOException is thrown when an I/O operation fails
 	 */
-	void writePage(RandomAccessFile treeFile) throws IOException {
+	void writePage(RandomAccessFile treeFile) {
 		// Get the bytes to write to file
 		byte[] pageBytes = byteArrayListToArray(getBytes());
-		if(this.startOfCellPointers == -ONE) {
-			this.startOfCellPointers = getSizeOfDataCells();
-		}
+		this.startOfCellPointers = getSizeOfDataCells();
+		
 		
 		// Pointers into the table file
 		// The beginning of this page and the start the next and the
 		// beginning of the data cell area at the end of the file
-		long pageStartAddress = ((long)this.getPageNumber() * PAGE_SIZE);
+		long pageStartAddress = (long)(this.getPageNumber() * PAGE_SIZE);
 		long startOfNextPage = pageStartAddress + PAGE_SIZE;
 		
 		// The remaining values are calculated for logging purposes
 		// Sizes of the page segments
 		// Header + data cell offsets, the free space in the middle of the page, and the size of the data cell area
-		int headerSize = PAGE_HEADER_SIZE + (Short.BYTES * this.numOfCells);
+		int headerSize = PAGE_HEADER_SIZE + (Short.BYTES * this.dataCells.size());
 		
 		// Data Cell Area Size = this.startOfCellPointers
 		int freeSpaceSize = PAGE_SIZE - this.startOfCellPointers - headerSize;
@@ -614,24 +625,28 @@ public abstract class Page {
 		long startOfFreeSpace = pageStartAddress + headerSize;
 		long startOfDataCells = startOfNextPage - (long)this.startOfCellPointers;
 		
-		// Information about the writing operation that is about to take place
-		LOGGER.log(Level.INFO, "Page number: {0}", this.pageNumber);
-		LOGGER.log(Level.INFO, "RandomAccessFile.length(): {0}", treeFile.length());
-		LOGGER.log(Level.INFO, "Page header/offset size: {0}", headerSize);
-		LOGGER.log(Level.INFO, "Free space size: {0}", freeSpaceSize);
-		LOGGER.log(Level.INFO, "Page start address: {0}", pageStartAddress);
-		LOGGER.log(Level.INFO, "Free space start address: {0}", startOfFreeSpace);
-		LOGGER.log(Level.INFO, "Start of data cells: {0}", startOfDataCells);
-		
-		
-		// Expand the file if needed
-		if(treeFile.length() < startOfNextPage) {
-			LOGGER.log(Level.INFO, "Expanding file");
-			treeFile.setLength(startOfNextPage);
+		try {
+			// Information about the writing operation that is about to take place
+			LOGGER.log(Level.INFO, "Page number: {0}", this.pageNumber);
+			LOGGER.log(Level.INFO, "RandomAccessFile.length(): {0}", treeFile.length());
+			LOGGER.log(Level.INFO, "Page header/offset size: {0}", headerSize);
+			LOGGER.log(Level.INFO, "Free space size: {0}", freeSpaceSize);
+			LOGGER.log(Level.INFO, "Page start address: {0}", pageStartAddress);
+			LOGGER.log(Level.INFO, "Free space start address: {0}", startOfFreeSpace);
+			LOGGER.log(Level.INFO, "Start of data cells: {0}", startOfDataCells);
+			
+			long length = treeFile.length();
+			// Expand the file if needed
+			if(length < startOfNextPage) {
+				LOGGER.log(Level.INFO, "Expanding file");
+				treeFile.setLength(length + PAGE_SIZE);
+			}
+			
+			treeFile.seek(pageStartAddress);
+			treeFile.write(pageBytes);
+		} catch (IOException e) {
+			LOGGER.log(Level.SEVERE, "Error writing Page");
 		}
-		
-		treeFile.seek(pageStartAddress);
-		treeFile.write(pageBytes);
 	}
 	
 	/**
@@ -696,12 +711,23 @@ public abstract class Page {
 	}
 	
 	int getMaxRowId() {
+		if(this.dataCells.size() == ZERO) {
+			return ZERO;
+		}
+		if(this.dataCells.size() == ONE) {
+			return this.dataCells.get(ZERO).getRowId();
+		}
 		Collections.sort(this.dataCells);
 		return this.dataCells.get(this.dataCells.size() -1).getRowId();
 	}
 	
+	int getMinRowId() {
+		Collections.sort(this.dataCells);
+		return this.dataCells.get(ZERO).getRowId();
+	}
+	
 	int getOnlyRowId() {
-		if (this.numOfCells == ONE) {
+		if (this.dataCells.size() == ONE) {
 			return this.dataCells.get(ZERO).getRowId();
 		}
 		return  -ONE;
@@ -709,5 +735,22 @@ public abstract class Page {
 	
 	DataCell getFirst() {
 		return this.dataCells.get(ZERO);
+	}
+	
+	DataCell getDataCellFromRowId(int rowId) {
+		for(DataCell dataCell : this.dataCells) {
+			if (dataCell.getRowId() == rowId) {
+				return dataCell;
+			}
+		}
+		return null;
+	}
+	
+	void removeList(ArrayList<DataCell> remove) {
+		this.dataCells.removeAll(remove);
+	}
+	
+	void addList(ArrayList<DataCell> add) {
+		this.dataCells.addAll(add);
 	}
 }

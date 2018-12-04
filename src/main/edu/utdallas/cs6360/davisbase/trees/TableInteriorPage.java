@@ -146,6 +146,11 @@ public class TableInteriorPage extends Page{
 		
 	}
 	
+	int getNextPage(int rowId) {
+		int nextPagePointer = getNextPageForRowId(rowId);
+		return nextPagePointer != -ONE ? nextPagePointer : this.nextPagePointer;
+	}
+	
 	/**
 	 * TODO: printPage
 	 */

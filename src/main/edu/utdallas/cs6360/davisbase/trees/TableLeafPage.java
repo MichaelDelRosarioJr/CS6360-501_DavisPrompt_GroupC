@@ -68,6 +68,7 @@ public class TableLeafPage extends Page{
 		super(pageType, pageNumber, tableConfig);
 		this.textColumns = tableConfig.hasTextColumns();
 		this.recordSizeNoText = tableConfig.getDataRecordSizeNoText();
+		this.nextPagePointer = nextPagePointer;
 		if(pageType == PageType.TABLE_LEAF_ROOT && nextPagePointer > ZERO) { throw new
 				IllegalArgumentException("Table root leaf page with non-null next page pointer"); }
 	}

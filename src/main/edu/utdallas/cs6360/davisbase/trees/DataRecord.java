@@ -428,7 +428,7 @@ public class DataRecord {
 	 * that returns the number of columns as a byte
 	 * @return a byte representing the number of columns in the DataRecord
 	 */
-	private byte getNumColumns() {
+	byte getNumColumns() {
 		return (byte) this.columnData.size();
 	}
 	
@@ -437,7 +437,7 @@ public class DataRecord {
 	 * DataRecord's column type codes
 	 * @return an array of bytes containing the DataRecord's coulmn type codes
 	 */
-	private ArrayList<DataType> getColumnDataTypes() { return this.columnDataType; }
+	ArrayList<DataType> getColumnDataTypes() { return this.columnDataType; }
 	
 	/**
 	 * A helper method used by the equals() method that returns the
