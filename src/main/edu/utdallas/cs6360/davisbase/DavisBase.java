@@ -1,5 +1,6 @@
 package edu.utdallas.cs6360.davisbase;
 
+import edu.utdallas.cs6360.davisbase.trees.DataRecord;
 import edu.utdallas.cs6360.davisbase.trees.DataType;
 import edu.utdallas.cs6360.davisbase.trees.TableTree;
 import edu.utdallas.cs6360.davisbase.utils.FileHandler;
@@ -296,14 +297,11 @@ public class DavisBase {
 //            if (!FileHandler.createTable(tokens.get(2))) {
 //                System.out.println("OOPS! Table " + tokens.get(2) + " already exists");
 //            } else {
-                DataType[] colTypes = getColTypes(tokens);
+                ArrayList<DataType> colTypes = getColTypes(tokens);
                 String[] isNull = getIsColumnsNullableFromCreateQuery(tokens);
                 String tablename = tokens.get(2);
-                try {
-                    TableTree tableTree = new TableTree(tablename, colTypes);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                TableTree tableTree = new TableTree(tablename, colTypes);
+
 //                System.out.println(columnNameTypeMap);
                 System.out.println("SUCCESS! Creating table");
             //}
@@ -354,18 +352,17 @@ public class DavisBase {
      * @param insertString is a String of the user input
      */
     private static void parseInsert(String insertString) {
-        System.out.println("STUB: This is the dropTable method.");
+        System.out.println("STUB: This is the parseInsert method.");
         if (checkInsert(insertString)) {
             System.out.println("\tParsing the string:\"" + insertString + "\"");
+            ArrayList<String> tokens = cleanCommand(insertString);
+            String tablename = tokens.get(2);
+            TableTree tableTree = new TableTree(tablename, DatabaseType.USER);
+            ArrayList<ArrayList<String>> rows = getRowsFromInsertQuery(tokens);
+            for (ArrayList<String> colValues : rows) {
+                tableTree.insert(tableTree.getColTypes(), colValues);
+            }
         }
-        ArrayList<String> tokens = cleanCommand(insertString);
-        String tablename =  tokens.get(2);
-        TableTree tableTree = new TableTree(tablename, DatabaseType.USER);
-        ArrayList<String[]> rows = getRowsFromInsertQuery(tokens);
-        for(String[] colValues : rows){
-            //tableTree.insert(,colValues);
-        }
-
     }
 
 
@@ -374,10 +371,10 @@ public class DavisBase {
      * @param tokens clean command tokens
      * @return ArrayList<String[]> which contains multiple rows t insert
      */
-    private static ArrayList<String[]> getRowsFromInsertQuery(ArrayList<String> tokens) {
+    private static ArrayList<ArrayList<String>> getRowsFromInsertQuery(ArrayList<String> tokens) {
         int i = tokens.indexOf("values");
         boolean start = false;
-        ArrayList<String[]> rows = new ArrayList<>();
+        ArrayList<ArrayList<String>> rows = new ArrayList<>();
         ArrayList<String> row = new ArrayList<>();
         for(; i < tokens.size(); i++) {
             if(tokens.get(i).equals("(")){
@@ -386,7 +383,7 @@ public class DavisBase {
             }
             else if(tokens.get(i).equals(")")){
                 start = false;
-                rows.add(row.toArray(new String[row.size()]));
+                rows.add(row);
                 row.clear();
             }
             else if(!tokens.get(i).equals(",") && start){
@@ -1107,7 +1104,7 @@ public class DavisBase {
      * @param tokens query tokens
      * @return DataType array
      */
-    private static DataType[] getColTypes(ArrayList<String> tokens){
+    private static ArrayList<DataType> getColTypes(ArrayList<String> tokens){
 
         ArrayList<DataType> dataTypeArrayList = new ArrayList<>();
 
@@ -1121,7 +1118,7 @@ public class DavisBase {
                 dataTypeArrayList.add(DataType.getDataTypeCodeFromString(tokens.get(i+1)));
             }
         }
-        return dataTypeArrayList.toArray(new DataType[dataTypeArrayList.size()]);
+        return dataTypeArrayList;
     }
 
     /**
