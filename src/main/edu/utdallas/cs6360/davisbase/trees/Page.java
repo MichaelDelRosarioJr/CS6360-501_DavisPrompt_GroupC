@@ -10,6 +10,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static edu.utdallas.cs6360.davisbase.Config.*;
+import static edu.utdallas.cs6360.davisbase.trees.TreeConstants.*;
+import static edu.utdallas.cs6360.davisbase.trees.TreeConstants.LOGGER_PAGE_CAPACITY_2;
 import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.*;
 
 /**
@@ -112,19 +114,6 @@ public abstract class Page {
 	}
 	
 	/**
-	 * Constructor that accepts a pageType, pageNumber, and List of dataCells<br>
-	 * @param pageType the type of page
-	 * @param pageNumber the page number and pointer location of the page in the file
-	 * @param dataCells the data cells to store in the page
-	 */
-	Page(PageType pageType, int pageNumber, ArrayList<DataCell> dataCells, TableConfig tableConfig) {
-		this.pageType = pageType;
-		this.pageNumber = pageNumber;
-		this.dataCells = new ArrayList<>(dataCells);
-		this.tableConfig = tableConfig;
-	}
-	
-	/**
 	 * Constructor recreates a page from the file using it's byte representation and page number
 	 * @param data the raw bytes of the page in the file
 	 * @param pageNumber the ordering of the page within the file
@@ -169,6 +158,7 @@ public abstract class Page {
 		initDataCellsFromBytes(Arrays.copyOfRange(data, data.length - startOfDataCellPointers, data.length),
 				numCells, startOfDataCellPointers);
 		
+		// TODO look at removing this value as it can probably be calculated as needed
 		this.startOfCellPointers = 0;
 	}
 	
@@ -213,7 +203,7 @@ public abstract class Page {
 	 */
 	
 	/**
-	 * Adds a new cell to the data store array
+	 * Uses the byte representation of a DataCell to add a new cell to the data store array
 	 * @param data an array of bytes representing a data cell
 	 */
 	private void addDataCell(byte[] data) {
@@ -225,6 +215,10 @@ public abstract class Page {
 		Collections.sort(this.dataCells);
 	}
 	
+	/**
+	 * Adds a new new DataCell to the tree
+	 * @param data a DataCell to store in the tree
+	 */
 	void addDataCell(DataCell data) {
 		if(isLeaf()) {
 			if (data instanceof TableLeafCell) {
@@ -245,6 +239,11 @@ public abstract class Page {
 		}
 	}
 	
+	/**
+	 * Retrieves and deletes a specific DataCell from the page
+	 * @param rowId the rowId of the DataCell to delete
+	 * @return the DataCell being deleted, if it can't be found then null
+	 */
 	DataCell removeCell(int rowId) {
 		int i = 0;
 		for(DataCell dataCell : this.dataCells) {
@@ -255,6 +254,13 @@ public abstract class Page {
 		return null;
 	}
 	
+	/**
+	 * When given a rowId this will return the page ID of the next page that needs to be traversed into to reach
+	 * the bucket/leaf page where this DataCell is either stored or about to be stored
+	 * @param rowId the rowId we are inserting or looking for
+	 * @return the page number for the next page on our path to the leaf page where this DataCell is stored/will be
+	 * stored
+	 */
 	int getNextPageForRowId(int rowId) {
 		Collections.sort(this.dataCells);
 		int nextPage = getNextPagePointerForRowId(rowId);
@@ -262,7 +268,38 @@ public abstract class Page {
 		return nextPage;
 	}
 	
-	int getNextPagePointerForRowId(int rowId) {
+	public String toString() {
+		return LOGGER_PAGE_TYPE + this.pageType.toString() + NEW_LINE +
+				LOGGER_PAGE_NUMBER + this.pageNumber + NEW_LINE +
+				LOGGER_PAGE_CAPACITY + this.dataCells.size() + LOGGER_PAGE_CAPACITY_2;
+	}
+	
+	public String getDataCellStrings() {
+		StringBuilder builder = new StringBuilder();
+		sort();
+		int i = ONE;
+		for(DataCell dataCell : getDataCells()) {
+			builder.append(i).append(COLON_SPACE).append(dataCell.toString());
+			i++;
+		}
+		return builder.toString();
+	}
+	
+	/**
+	 * Called by getNextPageForRowId. If the rowId is larger than the maxRowId for the page then we need to use the
+	 * the nextPagePointer of the Page or the pointer to the far right child. This is not applicable to IndexLeafPages.
+	 * If this is the case we return -1 as it does not have a nextPagePointer field, that is implemented in the
+	 * subclasses<br>
+	 *
+	 * TODO: Move this to subclasses if we have time after writing the Index tree code
+	 *
+	 * The order of the DataCells is reversed and we find the first rowId that ours is larger than and that cell has
+	 * our next page number.
+	 * @param rowId the rowId of the entry we are either inserting or looking for
+	 * @return the page number for the next page on our path to the leaf page where this DataCell is stored/will be
+	 * stored
+	 */
+	private int getNextPagePointerForRowId(int rowId) {
 		if (rowId > getMaxRowId()) {
 			return -ONE;
 		}
@@ -275,7 +312,9 @@ public abstract class Page {
 		return -ONE;
 	}
 	
+	
 	TableInteriorCell getDataCellForRowId(int rowId) {
+		Collections.sort(this.dataCells);
 		TableInteriorCell out = getDataCellFromParentForRowId(rowId);
 		Collections.sort(this.dataCells);
 		return out;
@@ -291,6 +330,13 @@ public abstract class Page {
 		return null;
 	}
 	
+	/**
+	 * Retrieves the TableInteriorCell that stores the pointer(pageNumber) for the given page. This method is used to
+	 * quickly retrieve this cell during the split operation as the rowId to this page(leftChild in split) must now be
+	 * updated with the medianRowId to reflect the split.
+	 * @param pageNumber the page number being stored by a TableInteriorCell within a page
+	 * @return the TableInteriorCell that stores the given pageNumber
+	 */
 	TableInteriorCell getDataCellFromPagePointer(int pageNumber) {
 		for (DataCell dataCell: dataCells) {
 			TableInteriorCell tableInteriorCell = (TableInteriorCell)dataCell;
@@ -302,6 +348,18 @@ public abstract class Page {
 		return NULL_CELL;
 	}
 	
+	/**
+	 * This method will be called on the parent of a split. When given a specific rowId the Page will find the DataCell
+	 * storing that rowId and retrieve it's neighbor immediately to it's right. This method is used when splitting a
+	 * page and we the newRightChild is not a far right page and requires a dedicated TableInteriorCell pointer.<br>
+	 *
+	 * This method returns the given TableInteriorCell and then the Tree uses the pageNumber pointer to retrieve the
+	 * page and that page's minRowId number will be the rowId used in the new TableInteriorCell that will point to our
+	 * newRightChild
+	 *
+	 * @param rowId the rowId used in the current pointer to the newLeftChild from a split
+	 * @return the TableInteriorCell of the pointer immediately after it.
+	 */
 	DataCell getCellRightNeighbor(int rowId) {
 		Collections.sort(this.dataCells);
 		int i = ZERO;
@@ -313,8 +371,6 @@ public abstract class Page {
 		}
 		return null;
 	}
-	
-	
 	
 	/**
 	 * Getter for property 'dataCells'.
@@ -330,15 +386,6 @@ public abstract class Page {
 	 * @return the type of the page
 	 */
 	PageType getPageType() { return this.pageType; }
-	
-	/**
-	 * Setter for property 'startOfCellPointers'.
-	 * TODO: Remove probably
-	 * @param startOfCellPointers Value to set for property 'startOfCellPointers'.
-	 */
-	public void setStartOfCellPointers(short startOfCellPointers) {
-		this.startOfCellPointers = startOfCellPointers;
-	}
 	
 	/**
 	 * Getter for property 'startOfCellPointers'.
@@ -421,6 +468,74 @@ public abstract class Page {
 		Collections.sort(this.dataCells);
 		return this.dataCells.get((this.dataCells.size() + ONE) / TWO).getRowId();
 	}
+	
+	/**
+	 * Used by the Tree's split method to retrieve the maxRowId stored in this page
+	 * @return the largest rowId stored in a DataCell on this page
+	 */
+	int getMaxRowId() {
+		if(this.dataCells.size() == ZERO) {
+			return ZERO;
+		}
+		if(this.dataCells.size() == ONE) {
+			return this.dataCells.get(ZERO).getRowId();
+		}
+		sort();
+		return this.dataCells.get(this.dataCells.size() - ONE).getRowId();
+	}
+	
+	/**
+	 * Used by the Tree's split method to retrieve the minRowId stored in this page
+	 * @return the smallest rowId stored in a DataCell on this page
+	 */
+	int getMinRowId() {
+		sort();
+		return this.dataCells.get(ZERO).getRowId();
+	}
+	
+	/**
+	 * Retrieves the first dataCell within a tree, useful for descending down the left subtree
+	 * @return the far left dataCell stored on this page
+	 */
+	DataCell getFirst() {
+		sort();
+		return this.dataCells.get(ZERO);
+	}
+	
+	/**
+	 * When given a rowId it returns a DataCell that is storing it. Useful for retrieving DataRecords from leaf pages
+	 * and updating TableInteriorCells
+	 * @param rowId the rowId of the entry we want
+	 * @return the DataCell that holds this rowId, null if there is no matching entry
+	 */
+	DataCell getDataCellFromRowId(int rowId) {
+		for(DataCell dataCell : this.dataCells) {
+			if (dataCell.getRowId() == rowId) {
+				return dataCell;
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * Accepts an ArrayList of DataCells to be removed from the page, this is called when the tree is splitting/merging
+	 * pages
+	 * @param remove ArrayList of DataCells that need to be removed
+	 */
+	void removeList(ArrayList<DataCell> remove) {
+		this.dataCells.removeAll(remove);
+	}
+	
+	/**
+	 * Accepts an ArrayList of DataCells to be added to the page, this is called when the tree is splitting/merging
+	 * pages
+	 * @param add ArrayList of DataCells that need to be added
+	 */
+	void addList(ArrayList<DataCell> add) {
+		this.dataCells.addAll(add);
+		sort();
+	}
+	
 	/**
 	 * Check if the page is full and needs splitting<br>
 	 * 
@@ -685,72 +800,4 @@ public abstract class Page {
 	 * how to log information about itself
 	 */
 	public abstract void printPage();
-	
-	/**
-	 * *****************************
-	 * *****************************
-	 * *****************************
-	 *        Static Methods
-	 * *****************************
-	 * *****************************
-	 * *****************************
-	 */
-	/**
-	 * A static helper method that accepts an 8 digit page header and if all bytes are null
-	 * then it returns true, else it returns false
-	 * @param data a page header (8 bytes)
-	 * @return true if the page is not being used, false otherwise
-	 */
-	static boolean isFreePage(byte[] data) {
-		for (byte b : data) {
-			if (b != ZERO) {
-				return false;
-			}
-		}
-		return true;
-	}
-	
-	int getMaxRowId() {
-		if(this.dataCells.size() == ZERO) {
-			return ZERO;
-		}
-		if(this.dataCells.size() == ONE) {
-			return this.dataCells.get(ZERO).getRowId();
-		}
-		Collections.sort(this.dataCells);
-		return this.dataCells.get(this.dataCells.size() -1).getRowId();
-	}
-	
-	int getMinRowId() {
-		Collections.sort(this.dataCells);
-		return this.dataCells.get(ZERO).getRowId();
-	}
-	
-	int getOnlyRowId() {
-		if (this.dataCells.size() == ONE) {
-			return this.dataCells.get(ZERO).getRowId();
-		}
-		return  -ONE;
-	}
-	
-	DataCell getFirst() {
-		return this.dataCells.get(ZERO);
-	}
-	
-	DataCell getDataCellFromRowId(int rowId) {
-		for(DataCell dataCell : this.dataCells) {
-			if (dataCell.getRowId() == rowId) {
-				return dataCell;
-			}
-		}
-		return null;
-	}
-	
-	void removeList(ArrayList<DataCell> remove) {
-		this.dataCells.removeAll(remove);
-	}
-	
-	void addList(ArrayList<DataCell> add) {
-		this.dataCells.addAll(add);
-	}
 }

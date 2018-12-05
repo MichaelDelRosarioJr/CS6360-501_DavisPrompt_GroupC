@@ -25,8 +25,14 @@ import static edu.utdallas.cs6360.davisbase.Config.*;
  */
 public class DataRecord {
 	
-	
+	/**
+	 * The DataTypes fir each column in this DataRecord
+	 */
 	private ArrayList<DataType> columnDataType;
+	
+	/**
+	 * The actual values stored in the columns of this DataRecord
+	 */
 	private ArrayList<String> columnData;
 	
 	/**
@@ -48,18 +54,6 @@ public class DataRecord {
 	
 	/**
 	 * A Constructor to be used to create new DataRecords from scripts or user input<br>
-	 * This Constructor accepts a byte array containing the column type codes and
-	 * a String array containing the column data.
-	 * @param typeCodes a byte array containing the column type codes
-	 * @param data a String array containing the column data
-	 *//*
-	DataRecord(ArrayList<Byte> typeCodes, ArrayList<String> data) {
-		this.columnDataType = typeCodes;
-		this.columnData = data;
-	}*/
-	
-	/**
-	 * A Constructor to be used to create new DataRecords from scripts or user input<br>
 	 * This Constructor accepts a DataType array containing the column type DataTypes and
 	 * a String array containing the column data.
 	 * @param types a DataType array containing the column type
@@ -69,7 +63,6 @@ public class DataRecord {
 		this.columnData = data;
 		this.columnDataType = types;
 	}
-	
 	
 	/**
 	 * This Constructor is used when loading a DataRecord from disk.<br>
@@ -111,6 +104,7 @@ public class DataRecord {
 		}
 		
 		// Pointer for column arrays
+		// TODO change null values to load and store values to disk if not whitespace I think the NULL field means it can be NULL not that is actually is null
 		int columnPointer = ZERO;
 		while (dataBuffer.hasRemaining() && columnPointer < this.columnDataType.size()) {
 			switch (this.columnDataType.get(columnPointer)) {
@@ -159,9 +153,6 @@ public class DataRecord {
 					columnPointer++;
 					break;
 				case DATETIME_TYPE_CODE:
-					this.columnData.add(Long.toUnsignedString(dataBuffer.getLong()));
-					columnPointer++;
-					break;
 				case DATE_TYPE_CODE:
 					this.columnData.add(Long.toUnsignedString(dataBuffer.getLong()));
 					columnPointer++;
@@ -182,8 +173,6 @@ public class DataRecord {
 			}
 		}
 	}
-	
-	
 	
 	/**
 	 * *****************************
@@ -447,6 +436,18 @@ public class DataRecord {
 	private ArrayList<String> getColumnData() { return this.columnData; }
 	
 	/**
+	 * Method that outputs the values in a DataRecord
+	 * @return String representation of a DataRecord
+	 */
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		for(String value : this.columnData) {
+			builder.append(String.format("|%10s|", value));
+		}
+		return builder.toString();
+	}
+	
+	/**
 	 * *****************************
 	 * *****************************
 	 * *****************************
@@ -455,6 +456,7 @@ public class DataRecord {
 	 * *****************************
 	 * *****************************
 	 */
+	
 	/**
 	 * Used to determine if the given object matches this
 	 * DataRecord object. <br>

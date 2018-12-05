@@ -1,11 +1,11 @@
 package edu.utdallas.cs6360.davisbase.trees;
 
-
-import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static edu.utdallas.cs6360.davisbase.Config.*;
+import static edu.utdallas.cs6360.davisbase.trees.TreeConstants.*;
 import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.intToBytes;
 import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.shortToBytes;
 
@@ -23,15 +23,6 @@ public class TableLeafPage extends Page{
 	private static final Logger LOGGER = Logger.getLogger(TableLeafPage.class.getName());
 	private boolean textColumns;
 	private int recordSizeNoText;
-	
-	/**
-	 * Setter for property 'nextPagePointer'.
-	 *
-	 * @param nextPagePointer Value to set for property 'nextPagePointer'.
-	 */
-	public void setNextPagePointer(int nextPagePointer) {
-		this.nextPagePointer = nextPagePointer;
-	}
 	
 	/**
 	 * 4 byte page number that is the page number of the right child of the Page.<br>
@@ -94,13 +85,6 @@ public class TableLeafPage extends Page{
 	 * *****************************
 	 * *****************************
 	 */
-	/**
-	 * Adds a new TableLeafCell to the TableLeafPage and then sorts the cell offsets by rowId
-	 * @param tableLeafCell the new cell to add to the page
-	 *//*
-	void addDataCell(TableLeafCell tableLeafCell, TableConfig tableConfig) {
-		//TODO:
-	}*/
 	
 	/**
 	 * Returns a TableLeafCell when given a rowId
@@ -123,6 +107,15 @@ public class TableLeafPage extends Page{
 	 */
 	int getNextPagePointer() {
 		return nextPagePointer;
+	}
+	
+	/**
+	 * Setter for property 'nextPagePointer'.
+	 *
+	 * @param nextPagePointer Value to set for property 'nextPagePointer'.
+	 */
+	public void setNextPagePointer(int nextPagePointer) {
+		this.nextPagePointer = nextPagePointer;
 	}
 	
 	/**
@@ -160,11 +153,13 @@ public class TableLeafPage extends Page{
 	}
 	
 	/**
-	 * TODO: printPage
+	 * Collects and logs information about this page to the console.
 	 */
 	@Override
 	public void printPage() {
-	
+		String loggerString = toString() + LOGGER_PAGE_NEXT_POINTER + this.nextPagePointer + NEW_LINE +
+				getDataCellStrings();
+		LOGGER.log(Level.INFO, loggerString);
 	}
 	
 	/**

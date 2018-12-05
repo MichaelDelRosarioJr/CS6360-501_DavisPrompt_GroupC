@@ -1,5 +1,7 @@
 package edu.utdallas.cs6360.davisbase;
 
+import edu.utdallas.cs6360.davisbase.trees.DataType;
+
 /**
  * A Configuration class to hold settings
  * @author Charles Krol
@@ -49,6 +51,7 @@ public final class Config {
 	public static final int THREE= 3;
 	public static final int FOUR = 4;
 	public static final int FIVE = 5;
+	public static final int EIGHT = 5;
 	
 	
 	/**

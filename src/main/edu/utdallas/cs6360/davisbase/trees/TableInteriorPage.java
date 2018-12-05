@@ -2,8 +2,11 @@ package edu.utdallas.cs6360.davisbase.trees;
 
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static edu.utdallas.cs6360.davisbase.Config.*;
+import static edu.utdallas.cs6360.davisbase.trees.TreeConstants.*;
 import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.*;
 
 /**
@@ -14,6 +17,7 @@ import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.*;
  * @author Mithil Vijay
  */
 public class TableInteriorPage extends Page{
+	private static final Logger LOGGER = Logger.getLogger(TableInteriorPage.class.getName());
 	/**
 	 * Setter for property 'nextPagePointer'.
 	 *
@@ -152,11 +156,13 @@ public class TableInteriorPage extends Page{
 	}
 	
 	/**
-	 * TODO: printPage
+	 * Collects and logs information about this page to the console.
 	 */
 	@Override
 	public void printPage() {
-	
+		String loggerString = toString() + LOGGER_PAGE_NEXT_POINTER + this.nextPagePointer + NEW_LINE +
+				getDataCellStrings();
+		LOGGER.log(Level.INFO, loggerString);
 	}
 	
 	/**

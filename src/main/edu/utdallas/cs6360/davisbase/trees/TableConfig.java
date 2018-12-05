@@ -10,9 +10,10 @@ import static edu.utdallas.cs6360.davisbase.Config.*;
 /**
  * Class that stores configuration details for specific instances of Table Trees<br>
  *
- * This is helpful in that it can be passed around to the various page classes at
- * creation time with common set up
+ * This is helpful in that it can be passed around to the various page classes at creation time with common set up
  * parameters
+ *
+ *
  * @author Charles Krol
  * @author Matthew Villarreal
  * @author Michael Del Rosario
@@ -25,23 +26,46 @@ public class TableConfig {
 	 */
 	private static final Logger LOGGER = Logger.getLogger(TableConfig.class.getName());
 	
-	// DataRecord Size: different depending on the CREATE TABLE command
+	/**
+	 * DataRecord Size: different depending on the CREATE TABLE command
+	 */
 	private int dataMaxRecordSize;
+	
+	/**
+	 * The size of a DataRecord without any text columns, if there are no text columns this will be the same as
+	 * dataMaxRecordSize
+	 */
 	private int dataRecordSizeNoText;
+	
+	/**
+	 * The number of columns configured in the tree
+	 */
 	private int numOfColumns;
 	
+	/**
+	 * The branching factor or the number of pointers that can be stored within an Interior B+Tree page which is
+	 * (numOfInteriorDataCells + 1) as we have the extra pointer for the right subtree within an Interior Page.<br><br>
+	 *
+	 *
+	 * Calculated by [(HEADER_SIZE + DATA_CELL_OFFSET_SIZE) / SizeOfInteriorCell], this will give us the number of
+	 * DataCells per page. To get the Order we must add 1 to account for the extra pointer in the page header
+	 */
 	private int treeOrder;
+	
+	/**
+	 * The number of records a leaf page can hold
+	 */
 	private int leafPageDegree;
 	
-	// True if the table has text columns false otherwise
+	/**
+	 * True if the table has text columns false otherwise
+	 */
 	private boolean hasTextColumns;
 	
 	/**
 	 * TODO: Link with metadata tables
 	 */
 	private ArrayList<DataType> colTypes;
-	
-	
 	
 	/**
 	 * Default constructor for completeness
@@ -90,7 +114,7 @@ public class TableConfig {
 	 *
 	 * @return Value for property 'dataMaxRecordSize'.
 	 */
-	public int getDataMaxRecordSize() {
+	int getDataMaxRecordSize() {
 		return this.dataMaxRecordSize;
 	}
 	
@@ -99,7 +123,7 @@ public class TableConfig {
 	 *
 	 * @return Value for property 'treeOrder'.
 	 */
-	public int getTreeOrder() {
+	int getTreeOrder() {
 		return this.treeOrder;
 	}
 	
@@ -108,7 +132,7 @@ public class TableConfig {
 	 *
 	 * @return Value for property 'leafPageDegree'.
 	 */
-	public int getLeafPageDegree() {
+	int getLeafPageDegree() {
 		return this.leafPageDegree;
 	}
 	
@@ -117,7 +141,7 @@ public class TableConfig {
 	 *
 	 * @return Value for property 'hasTextColumns'.
 	 */
-	public boolean hasTextColumns() {
+	boolean hasTextColumns() {
 		return hasTextColumns;
 	}
 	
@@ -126,17 +150,8 @@ public class TableConfig {
 	 *
 	 * @return Value for property 'dataRecordSizeNoText'.
 	 */
-	public int getDataRecordSizeNoText() {
+	int getDataRecordSizeNoText() {
 		return dataRecordSizeNoText;
-	}
-	
-	/**
-	 * Setter for property 'hasTextColumns'.
-	 *
-	 * @param hasTextColumns Value to set for property 'hasTextColumns'.
-	 */
-	public void setHasTextColumns(boolean hasTextColumns) {
-		this.hasTextColumns = hasTextColumns;
 	}
 	
 	/**
@@ -312,8 +327,7 @@ public class TableConfig {
 	 * Calculates and returns the maximum number of entries allowedin a table interior cell
 	 * @return the maximum number of entries
 	 */
-	public int getMaxInteriorPageCells() {
-		//return (2*this.treeOrder) - 1;
+	int getMaxInteriorPageCells() {
 		return treeOrder - ONE;
 	}
 	
@@ -321,7 +335,7 @@ public class TableConfig {
 	 * Calculates and returns the minimum number of entries allowed in a table interior cell
 	 * @return the minimum number of entries
 	 */
-	public int getMinInteriorPageCell() {
+	int getMinInteriorPageCell() {
 		return (this.treeOrder - ONE) / TWO;
 	}
 	
@@ -329,8 +343,7 @@ public class TableConfig {
 	 * Calculates and returns the maximum number of entries allowed in a table leaf cell
 	 * @return the maximum number of entries
 	 */
-	public int getMaxLeafPageRecords() {
-		//return (2*this.leafPageDegree) - 1;
+	int getMaxLeafPageRecords() {
 		return leafPageDegree - ONE;
 	}
 	
@@ -338,10 +351,13 @@ public class TableConfig {
 	 * Calculates and returns the minimum number pf entries allowed in a table leaf cell
 	 * @return the minimum number of entries
 	 */
-	public int getMinLeafPageRecords() {
+	int getMinLeafPageRecords() {
 		return (this.leafPageDegree - ONE) / TWO;
 	}
 	
+	/**
+	 * Log information about the configuration of this tree instance
+	 */
 	void logTreeConfig() {
 		LOGGER.log(Level.INFO, "Tree Order: {0}", this.treeOrder);
 		LOGGER.log(Level.INFO, "Leaf Page Degree: {0}", this.leafPageDegree);
@@ -357,8 +373,14 @@ public class TableConfig {
 	 * *****************************
 	 * *****************************
 	 */
-	public static boolean doesColHaveTextFields(DataType[] colTypeCodes){
-		for (DataType b : colTypeCodes) {
+	
+	/**
+	 * When given an array of DataTypes this static method determines if the column configuration contains text columns
+	 * @param colTypes an array of column data types
+	 * @return true if the configuration of columns contains at least 1 text column, false otherwise
+	 */
+	static boolean doesColHaveTextFields(DataType[] colTypes){
+		for (DataType b : colTypes) {
 			if (b == DataType.TEXT_TYPE_CODE) {
 				return true;
 			}
@@ -366,7 +388,13 @@ public class TableConfig {
 		return false;
 	}
 	
-	public static boolean doesColHaveTextFields(ArrayList<DataType> colTypes){
+	/**
+	 * When given an ArrayList of DataTypes this static method determines if the column configuration contains text
+	 * columns
+	 * @param colTypes an ArrayList of column data types
+	 * @return true if the configuration of columns contains at least 1 text column, false otherwise
+	 */
+	static boolean doesColHaveTextFields(ArrayList<DataType> colTypes){
 		for (DataType type : colTypes) {
 			if (type == DataType.TEXT_TYPE_CODE) {
 				return true;

@@ -5,6 +5,7 @@ import edu.utdallas.cs6360.davisbase.Config;
 import java.nio.ByteBuffer;
 import java.util.*;
 
+import static edu.utdallas.cs6360.davisbase.trees.TreeConstants.*;
 import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.intToBytes;
 import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.shortToBytes;
 
@@ -122,6 +123,17 @@ public class TableLeafCell extends DataCell {
 	 * *****************************
 	 * *****************************
 	 */
+	
+	/**
+	 * Method to output basic data about a TableLeafCell and it's payload
+	 * @return String representation of the TableLeafCell
+	 */
+	@Override
+	public String toString() {
+		return LOGGER_DATACELL_ROWID + getRowId() + NEW_LINE +
+				LOGGER_PAYLOAD + this.payload.toString();
+	}
+	
 	/**
 	 * Used mainly for JUnit test classes
 	 * @param o an object to compare

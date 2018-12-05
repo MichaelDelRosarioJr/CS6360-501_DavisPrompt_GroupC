@@ -93,11 +93,15 @@ public abstract class DataCell implements Comparable<DataCell> {
 	int getRowId() {
 		return rowId;
 	}
+	
+	/**
+	 * Setter for property 'rowId'.
+	 *
+	 * @param id a unique 4-byte integer that acts a key value for this entry in a tree structure.
+	 */
 	void setRowId(int id) {
 		this.rowId = id;
 	}
-	
-	
 	
 	/**
 	 * *****************************
@@ -108,6 +112,12 @@ public abstract class DataCell implements Comparable<DataCell> {
 	 * *****************************
 	 * *****************************
 	 */
+	
+	/**
+	 * At minimum returns the rowId, different depending on which subclass is implementing it
+	 * @return a String representation of the DataCell
+	 */
+	public abstract String toString();
 	/**
 	 * A compareTo method which compares DataCells by rowIds
 	 * @param dataCell a DataCell to compare to this one
@@ -136,6 +146,10 @@ public abstract class DataCell implements Comparable<DataCell> {
 		return rowId == dataCell.rowId ;
 	}
 	
+	/**
+	 * Implemented for completenss
+	 * @return the hashcode of a DataCell(just the rowId)
+	 */
 	@Override
 	public int hashCode() {
 		return rowId;

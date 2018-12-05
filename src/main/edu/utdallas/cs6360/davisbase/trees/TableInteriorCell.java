@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import java.util.*;
 
 import static edu.utdallas.cs6360.davisbase.Config.*;
+import static edu.utdallas.cs6360.davisbase.trees.TreeConstants.*;
 
 /**
  * Class to represent a Table Interior Cell of 8 bytes in size
@@ -17,25 +18,10 @@ import static edu.utdallas.cs6360.davisbase.Config.*;
  * @see DataCell
  */
 public class TableInteriorCell extends DataCell implements Comparable<DataCell> {
-	/**
-	 * Getter for property 'leftChildPointer'.
-	 *
-	 * @return Value for property 'leftChildPointer'.
-	 */
-	public int getLeftChildPointer() {
-		return leftChildPointer;
-	}
 	
 	/**
-	 * Setter for property 'leftChildPointer'.
-	 *
-	 * @param leftChildPointer Value to set for property 'leftChildPointer'.
+	 * The page number of the next tree page to the left of this cell's
 	 */
-	public void setLeftChildPointer(int leftChildPointer) {
-		this.leftChildPointer = leftChildPointer;
-	}
-	
-	// Page Number
 	private int leftChildPointer;
 	
 	/**
@@ -79,8 +65,6 @@ public class TableInteriorCell extends DataCell implements Comparable<DataCell> 
 		this.leftChildPointer = headerBuffer.getInt();
 	}
 	
-	
-	
 	/**
 	 * *****************************
 	 * *****************************
@@ -105,7 +89,6 @@ public class TableInteriorCell extends DataCell implements Comparable<DataCell> 
 		for(Byte b: ByteHelpers.intToBytes(this.getRowId())) {
 			output.add(b);
 		}
-		
 		return output;
 	}
 	
@@ -115,6 +98,24 @@ public class TableInteriorCell extends DataCell implements Comparable<DataCell> 
 	 */
 	public int size() {
 		return TABLE_INTERIOR_CELL_SIZE;
+	}
+	
+	/**
+	 * Getter for property 'leftChildPointer'.
+	 *
+	 * @return Value for property 'leftChildPointer'.
+	 */
+	int getLeftChildPointer() {
+		return leftChildPointer;
+	}
+	
+	/**
+	 * Setter for property 'leftChildPointer'.
+	 *
+	 * @param leftChildPointer Value to set for property 'leftChildPointer'.
+	 */
+	void setLeftChildPointer(int leftChildPointer) {
+		this.leftChildPointer = leftChildPointer;
 	}
 	
 	
@@ -127,6 +128,17 @@ public class TableInteriorCell extends DataCell implements Comparable<DataCell> 
 	 * *****************************
 	 * *****************************
 	 */
+	/**
+	 * Method to return the rowId and the left child pointer of the TableInteriorCell for
+	 * logging purposes
+	 * @return String representation of a TableInteriorCell
+	 */
+	@Override
+	public String toString() {
+		return LOGGER_DATACELL_ROWID + this.getRowId() + NEW_LINE + LEFTCHILD_POINTER +
+				this.leftChildPointer + NEW_LINE;
+	}
+	
 	/**
 	 * Overridden toEquals class to help with unit tests
 	 * @param o hopefully a TableInteriorCell object to compare

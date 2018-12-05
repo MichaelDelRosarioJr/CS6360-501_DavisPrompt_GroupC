@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Optional;
 
+import static edu.utdallas.cs6360.davisbase.trees.TreeConstants.*;
+
 /**
  * Enum class to hold information about DataRecord column types
  * @author Charles Krol
@@ -12,31 +14,24 @@ import java.util.Optional;
  * @author Mithil Vijay
  */
 public enum DataType {
-	NULL1_TYPE_CODE((byte)0x00, (byte)0x01),
-	NULL2_TYPE_CODE((byte)0x01, (byte)0x02),
-	NULL4_TYPE_CODE((byte)0x02, (byte)0x04),
-	NULL8_TYPE_CODE((byte)0x03, (byte)0x08),
-	TINY_INT_TYPE_CODE((byte)0x04, (byte)0x01),
-	SHORT_TYPE_CODE((byte)0x05, (byte)0x02),
-	INT_TYPE_CODE((byte)0x06, (byte)0x04),
-	LONG_TYPE_CODE((byte)0x07, (byte)0x08),
-	REAL_TYPE_CODE((byte)0x08, (byte)0x04),
-	DOUBLE_TYPE_CODE((byte)0x09, (byte)0x08),
-	DATETIME_TYPE_CODE((byte)0x0A, (byte)0x08),
-	DATE_TYPE_CODE((byte)0x0B, (byte)0x08),
-	TEXT_TYPE_CODE((byte)0x0C, (byte)0x7F);
+	NULL1_TYPE_CODE((byte)0x00, (byte)0x01, NULL1),
+	NULL2_TYPE_CODE((byte)0x01, (byte)0x02, NULL2),
+	NULL4_TYPE_CODE((byte)0x02, (byte)0x04, NULL4),
+	NULL8_TYPE_CODE((byte)0x03, (byte)0x08, NULL8),
+	TINY_INT_TYPE_CODE((byte)0x04, (byte)0x01, TINYINT_STRING),
+	SHORT_TYPE_CODE((byte)0x05, (byte)0x02, SMALLINT_STRING),
+	INT_TYPE_CODE((byte)0x06, (byte)0x04, INT_STRING),
+	LONG_TYPE_CODE((byte)0x07, (byte)0x08, BIGINT_STRING),
+	REAL_TYPE_CODE((byte)0x08, (byte)0x04, REAL_STRING),
+	DOUBLE_TYPE_CODE((byte)0x09, (byte)0x08, DOUBLE_STRING),
+	DATETIME_TYPE_CODE((byte)0x0A, (byte)0x08, DATETIME_STRING),
+	DATE_TYPE_CODE((byte)0x0B, (byte)0x08, DATE_STRING),
+	TEXT_TYPE_CODE((byte)0x0C, (byte)0x7F, TEXT_STRING);
 	
-	public static final String INT_STRING = "int";
-	public static final String TINYINT_STRING = "tinyint";
-	public static final String SMALLINT_STRING = "smallint";
-	public static final String BIGINT_STRING = "bigint";
-	public static final String REAL_STRING = "real";
-	public static final String DOUBLE_STRING = "double";
-	public static final String DATETIME_STRING = "datetime";
-	public static final String DATE_STRING = "date";
-	public static final String TEXT_STRING = "text";
+	
 	private final byte typeCode;
 	private final byte dataSize;
+	private final String dataTypeName;
 	
 	/**
 	 * Sets the typeCode and size of the datatype in bytes, for TEXT the size is
@@ -44,9 +39,10 @@ public enum DataType {
 	 * @param code a byte representing a data type
 	 * @param size the size of the data type in bytes
 	 */
-	DataType(byte code, byte size) {
+	DataType(byte code, byte size, String name) {
 		this.typeCode = code;
 		this.dataSize = size;
+		this.dataTypeName = name;
 	}
 	
 	/**
@@ -54,6 +50,14 @@ public enum DataType {
 	 * @return type code for the DataType
 	 */
 	public byte getTypeCode() { return this.typeCode; }
+	
+	/**
+	 * Method that returns the name of the DataType for logging purposes
+	 * @return the name of the DataType
+	 */
+	public String toString() {
+		return this.dataTypeName;
+	}
 	
 	/**
 	 * Returns the data type when given the byte code <br>
