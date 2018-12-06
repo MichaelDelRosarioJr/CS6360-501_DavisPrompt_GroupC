@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>JAVA</ID>
+  <OriginalElement>edu.utdallas.cs6360.davisbase.trees</OriginalElement>
+  <nodes>
+    <node x="0.0" y="232.0">edu.utdallas.cs6360.davisbase.trees.TableLeafCell</node>
+    <node x="94.5" y="153.0">edu.utdallas.cs6360.davisbase.trees.DataCell</node>
+    <node x="149.0" y="232.0">edu.utdallas.cs6360.davisbase.trees.TableInteriorCell</node>
+    <node x="364.0" y="454.0">edu.utdallas.cs6360.davisbase.trees.TableConfig</node>
+    <node x="164.0" y="528.0">edu.utdallas.cs6360.davisbase.trees.TableTree</node>
+    <node x="442.0" y="153.0">edu.utdallas.cs6360.davisbase.trees.IndexCell</node>
+    <node x="227.0" y="306.0">edu.utdallas.cs6360.davisbase.trees.TableInteriorCellTest</node>
+    <node x="341.0" y="232.0">edu.utdallas.cs6360.davisbase.trees.IndexInteriorCell</node>
+    <node x="0.0" y="602.0">edu.utdallas.cs6360.davisbase.trees.DataType</node>
+    <node x="201.0" y="380.0">edu.utdallas.cs6360.davisbase.trees.TableConfigTest</node>
+    <node x="317.0" y="528.0">edu.utdallas.cs6360.davisbase.trees.PageType</node>
+    <node x="470.0" y="528.0">edu.utdallas.cs6360.davisbase.trees.IndexTree</node>
+    <node x="395.0" y="380.0">edu.utdallas.cs6360.davisbase.trees.DataRecordTest</node>
+    <node x="0.0" y="380.0">edu.utdallas.cs6360.davisbase.trees.TableLeafCellTest</node>
+    <node x="0.0" y="79.0">edu.utdallas.cs6360.davisbase.trees.IndexLeafPage</node>
+    <node x="489.0" y="79.0">edu.utdallas.cs6360.davisbase.trees.TableInteriorPage</node>
+    <node x="184.0" y="454.0">edu.utdallas.cs6360.davisbase.trees.TableTreeTest</node>
+    <node x="0.0" y="528.0">edu.utdallas.cs6360.davisbase.trees.DataRecord</node>
+    <node x="446.0" y="306.0">edu.utdallas.cs6360.davisbase.trees.TableLeafPageTest</node>
+    <node x="269.5" y="0.0">edu.utdallas.cs6360.davisbase.trees.Page</node>
+    <node x="157.00000000000003" y="79.0">edu.utdallas.cs6360.davisbase.trees.TableLeafPage</node>
+    <node x="0.0" y="306.0">edu.utdallas.cs6360.davisbase.trees.TableInteriorPageTest</node>
+    <node x="314.0" y="79.0">edu.utdallas.cs6360.davisbase.trees.IndexInteriorPage</node>
+    <node x="0.0" y="454.0">edu.utdallas.cs6360.davisbase.trees.TreeConstants</node>
+    <node x="508.0" y="232.0">edu.utdallas.cs6360.davisbase.trees.IndexLeafCell</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="edu.utdallas.cs6360.davisbase.trees.IndexInteriorCell" target="edu.utdallas.cs6360.davisbase.trees.IndexCell">
+      <point x="0.0" y="-14.5" />
+      <point x="414.5" y="207.0" />
+      <point x="467.75" y="207.0" />
+      <point x="-25.75" y="14.5" />
+    </edge>
+    <edge source="edu.utdallas.cs6360.davisbase.trees.IndexInteriorPage" target="edu.utdallas.cs6360.davisbase.trees.Page">
+      <point x="0.0" y="-14.5" />
+      <point x="391.5" y="59.0" />
+      <point x="318.25" y="59.0" />
+      <point x="9.75" y="14.5" />
+    </edge>
+    <edge source="edu.utdallas.cs6360.davisbase.trees.IndexLeafCell" target="edu.utdallas.cs6360.davisbase.trees.IndexCell">
+      <point x="0.0" y="-14.5" />
+      <point x="572.5" y="207.0" />
+      <point x="519.25" y="207.0" />
+      <point x="25.75" y="14.5" />
+    </edge>
+    <edge source="edu.utdallas.cs6360.davisbase.trees.TableLeafPage" target="edu.utdallas.cs6360.davisbase.trees.Page">
+      <point x="0.0" y="-14.5" />
+      <point x="225.50000000000003" y="59.0" />
+      <point x="298.75" y="59.0" />
+      <point x="-9.75" y="14.5" />
+    </edge>
+    <edge source="edu.utdallas.cs6360.davisbase.trees.TableInteriorCell" target="edu.utdallas.cs6360.davisbase.trees.DataCell">
+      <point x="0.0" y="-14.5" />
+      <point x="222.5" y="207.0" />
+      <point x="168.0" y="207.0" />
+      <point x="24.5" y="14.5" />
+    </edge>
+    <edge source="edu.utdallas.cs6360.davisbase.trees.IndexLeafPage" target="edu.utdallas.cs6360.davisbase.trees.Page">
+      <point x="0.0" y="-14.5" />
+      <point x="68.5" y="49.0" />
+      <point x="279.25" y="49.0" />
+      <point x="-29.25" y="14.5" />
+    </edge>
+    <edge source="edu.utdallas.cs6360.davisbase.trees.TableLeafCell" target="edu.utdallas.cs6360.davisbase.trees.DataCell">
+      <point x="0.0" y="-14.5" />
+      <point x="64.5" y="207.0" />
+      <point x="119.0" y="207.0" />
+      <point x="-24.5" y="14.5" />
+    </edge>
+    <edge source="edu.utdallas.cs6360.davisbase.trees.TableInteriorPage" target="edu.utdallas.cs6360.davisbase.trees.Page">
+      <point x="2.8421709430404007E-14" y="-14.5" />
+      <point x="566.5" y="49.0" />
+      <point x="337.75" y="49.0" />
+      <point x="29.25" y="14.5" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Group" zoom="1.0" x="322.0" y="315.5" />
+  <SelectedNodes>
+    <node>edu.utdallas.cs6360.davisbase.trees.TableInteriorCell</node>
+  </SelectedNodes>
+  <Categories>
+    <Category>Inner Classes</Category>
+  </Categories>
+  <SCOPE>All</SCOPE>
+  <VISIBILITY>private</VISIBILITY>
+</Diagram>
+
