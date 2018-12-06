@@ -504,17 +504,17 @@ public abstract class Page {
 	
 	/**
 	 * When given a rowId it returns a DataCell that is storing it. Useful for retrieving DataRecords from leaf pages
-	 * and updating TableInteriorCells
+	 * and updating TableInteriorCells. <br>
+	 *
+	 * Binary Search is used to locate the index of the DataCell within the ArrayList with the given rowId. If the index
+	 * is -1 then NULL is returned because the given DataCell is not stored on this page, else it returns the requested
+	 * dataCell
 	 * @param rowId the rowId of the entry we want
 	 * @return the DataCell that holds this rowId, null if there is no matching entry
 	 */
 	DataCell getDataCellFromRowId(int rowId) {
-		for(DataCell dataCell : this.dataCells) {
-			if (dataCell.getRowId() == rowId) {
-				return dataCell;
-			}
-		}
-		return null;
+		int index = binarySearch(rowId, ZERO, this.dataCells.size() - ONE);
+		return (index != -ONE ? this.dataCells.get(index) : null);
 	}
 	
 	/**
@@ -611,23 +611,56 @@ public abstract class Page {
 	boolean isIndexPage() { return this.pageType == PageType.INDEX_LEAF_PAGE ||
 			this.pageType == PageType.INDEX_LEAF_ROOT || this.pageType == PageType.INDEX_INTERIOR_PAGE ||
 			this.pageType == PageType.INDEX_INTERIOR_ROOT; }
-			
+	
+	/**
+	 * A method to determine if this table is set up with text columns
+ 	 * @return true if set up with text columns, false otherwise
+	 */
 	boolean hasTextColumns() {
 		return this.tableConfig.hasTextColumns();
 	}
 	
+	/**
+	 * Gets the size of a record for this table without text values.
+	 * @return the size of an entry without text values
+	 */
 	int getRecordSizeNoText() {
 		return this.tableConfig.getDataRecordSizeNoText();
 	}
 	
+	/**
+	 * A method to determine if the give DataCell is stored in the page
+	 * @param dataCell the dataCell we are inquiring about
+	 * @return true if the dataCell is stored here, false otherwise
+	 */
 	boolean contains(DataCell dataCell) {
 		for(DataCell d : dataCells) {
 			if(d.getRowId() == dataCell.getRowId()) {
 				return true;
 			}
 		}
-		
 		return this.dataCells.contains(dataCell);
+	}
+	
+	/**
+	 * A recursive Binary Search algorithm for saving literally a minuscule amount of time on DataCell queries in pages.
+	 * @param requestedRowId the rowId of the entry we are looking for
+	 * @param low the low end of the range we are currently searching through
+	 * @param high the high end of the range we are currently searching through
+	 * @return the index of the dataCell in the ArrayList with the key requestedRowId
+	 */
+	private int binarySearch(int requestedRowId, int low, int high) {
+		if ( high < low) {
+			return -ONE;
+		}
+		int mid = (low + high)/TWO;
+		if(this.dataCells.get(mid).getRowId() > requestedRowId) {
+			return binarySearch(requestedRowId, low, mid-ONE);
+		} else if (this.dataCells.get(mid).getRowId() < requestedRowId) {
+			return binarySearch(requestedRowId, mid+ONE, high);
+		} else {
+			return mid;
+		}
 	}
 	
 	/**

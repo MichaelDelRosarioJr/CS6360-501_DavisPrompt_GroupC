@@ -10,28 +10,18 @@ import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.intToBytes;
 import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.shortToBytes;
 
 /**
- * Class to represent a leaf page in a file and it's cells
  * @author Charles Krol
  * @author Matthew Villarreal
- * @author Michael Del Rosario
+ * @author Michael Del Rosari
  * @author Mithil Vijay
  */
-public class TableLeafPage extends Page{
+public class IndexLeafPage extends Page{
 	/**
 	 * A logger that logs things for logging purposes
 	 */
-	private static final Logger LOGGER = Logger.getLogger(TableLeafPage.class.getName());
+	private static final Logger LOGGER = Logger.getLogger(IndexLeafPage.class.getName());
 	private boolean textColumns;
 	private int recordSizeNoText;
-	
-	/**
-	 * 4 byte page number that is the page number of the right child of the Page.<br>
-	 *
-	 * For TableLeafPages it points to the next TableLeafPage in the LinkedList of TableLeafPages at the last level
-	 * in a Table Tree(B+Tree)
-	 * @see TableLeafPage
-	 */
-	private int nextPagePointer;
 	
 	/**
 	 * *****************************
@@ -45,32 +35,31 @@ public class TableLeafPage extends Page{
 	/**
 	 * Default constructor
 	 */
-	public TableLeafPage() {
+	public IndexLeafPage() {
 		super();
 	}
 	
 	/**
-	 * Constructor that creates a new TableLeafPage from a pageType, pageNumber, and right subtree pointer
+	 * Constructor that creates a new IndexLeafPage from a pageType, pageNumber, and right subtree pointer
 	 * @param pageType the type of page, root or normal
 	 * @param pageNumber the page number as it will appear in the file
 	 * @param nextPagePointer the page number acting as a pointer into the right subtree
 	 */
-	TableLeafPage(PageType pageType, int pageNumber, int nextPagePointer, TableConfig tableConfig) {
+	IndexLeafPage(PageType pageType, int pageNumber, int nextPagePointer, TableConfig tableConfig) {
 		super(pageType, pageNumber, tableConfig);
 		this.textColumns = tableConfig.hasTextColumns();
 		this.recordSizeNoText = tableConfig.getDataRecordSizeNoText();
-		this.nextPagePointer = nextPagePointer;
 		if(pageType == PageType.TABLE_LEAF_ROOT && nextPagePointer > ZERO) { throw new
 				IllegalArgumentException("Table root leaf page with non-null next page pointer"); }
 	}
 	
 	/**
-	 * A constructor to recreate a TableLeafPage object from it's byte representation stored in the file.
+	 * A constructor to recreate a IndexLeafPage object from it's byte representation stored in the file.
 	 *
 	 * @param data an array of bytes representing an entire page from a file
 	 * @param pageNumber the pageNumber as it appears in the file
 	 */
-	TableLeafPage(byte[] data, int pageNumber, TableConfig tableConfig) {
+	IndexLeafPage(byte[] data, int pageNumber, TableConfig tableConfig) {
 		super(data, pageNumber, tableConfig);
 		this.textColumns = tableConfig.hasTextColumns();
 		this.recordSizeNoText = tableConfig.getDataRecordSizeNoText();
@@ -101,24 +90,6 @@ public class TableLeafPage extends Page{
 	}
 	
 	/**
-	 * Getter for property 'nextPagePointer'.
-	 *
-	 * @return Value for property 'nextPagePointer'.
-	 */
-	int getNextPagePointer() {
-		return nextPagePointer;
-	}
-	
-	/**
-	 * Setter for property 'nextPagePointer'.
-	 *
-	 * @param nextPagePointer Value to set for property 'nextPagePointer'.
-	 */
-	public void setNextPagePointer(int nextPagePointer) {
-		this.nextPagePointer = nextPagePointer;
-	}
-	
-	/**
 	 * *****************************
 	 * *****************************
 	 * *****************************
@@ -134,22 +105,22 @@ public class TableLeafPage extends Page{
 	 */
 	@Override
 	public List<Byte> getHeaderBytes() {
-		ArrayList<Byte> tableLeafCellHeader = new ArrayList<>();
+		ArrayList<Byte> indexLeafCellHeader = new ArrayList<>();
 		
 		// Add header type code and number of data cells
-		tableLeafCellHeader.add(PageType.TABLE_LEAF_PAGE.getByteCode());
-		tableLeafCellHeader.add(getNumOfCells());
+		indexLeafCellHeader.add(PageType.INDEX_LEAF_PAGE.getByteCode());
+		indexLeafCellHeader.add(getNumOfCells());
 		
 		// Convert `startOfCellPointers` to bytes and add to header
 		for(Byte b : shortToBytes(getStartOfCellPointers())) {
-			tableLeafCellHeader.add(b);
+			indexLeafCellHeader.add(b);
 		}
 		
-		// Convert `nextPagePointer` to bytes and add to header
-		for(Byte b: intToBytes(this.nextPagePointer)) {
-			tableLeafCellHeader.add(b);
+		// Set next 4-bytes to 0 as the nextPagePointer is not used by the IndexLeafPages to bytes and add to header
+		for(Byte b: intToBytes(ZERO)) {
+			indexLeafCellHeader.add(b);
 		}
-		return tableLeafCellHeader;
+		return indexLeafCellHeader;
 	}
 	
 	/**
@@ -157,8 +128,7 @@ public class TableLeafPage extends Page{
 	 */
 	@Override
 	public void printPage() {
-		String loggerString = toString() + LOGGER_PAGE_NEXT_POINTER + this.nextPagePointer + NEW_LINE +
-				getDataCellStrings();
+		String loggerString = toString() + NEW_LINE + getDataCellStrings();
 		LOGGER.log(Level.INFO, loggerString);
 	}
 	
@@ -183,7 +153,7 @@ public class TableLeafPage extends Page{
 	}
 	
 	/**
-	 * Determines if two TableLeafPage objects are equivalent
+	 * Determines if two IndexLeafPage objects are equivalent
 	 * @param o an object to compare
 	 * @return true if equivalent, false otherwise
 	 */
@@ -197,26 +167,26 @@ public class TableLeafPage extends Page{
 		}
 		
 		// If object is not TableInteriorPage return false
-		if (!(o instanceof TableLeafPage)) {
+		if (!(o instanceof IndexLeafPage)) {
 			return false;
 		}
 		
 		// Since not null and TableInteriorPage
 		// Cast to TableInteriorPage
-		TableLeafPage that = (TableLeafPage) o;
+		IndexLeafPage that = (IndexLeafPage) o;
 		
 		// Sort the ArrayLists to ensure they are in the same order based on row ID
 		Collections.sort(this.getDataCells());
 		Collections.sort(that.getDataCells());
 		
-		return this.nextPagePointer == that.getNextPagePointer() && this.getPageNumber() == that.getPageNumber() &&
+		return  this.getPageNumber() == that.getPageNumber() &&
 				this.getPageType() == that.getPageType() && this.getNumOfCells() == that.getNumOfCells() &&
 				this.getDataCells().equals(that.getDataCells());
 	}
 	
 	/**
 	 * hashCode
-	 * @return a hashCode for a TableLeafPage object
+	 * @return a hashCode for a IndexLeafPage object
 	 */
 	/*
 	@Override

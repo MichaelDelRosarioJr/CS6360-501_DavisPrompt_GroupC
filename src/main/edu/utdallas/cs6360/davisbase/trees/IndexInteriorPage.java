@@ -1,23 +1,28 @@
 package edu.utdallas.cs6360.davisbase.trees;
 
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static edu.utdallas.cs6360.davisbase.Config.*;
 import static edu.utdallas.cs6360.davisbase.trees.TreeConstants.*;
-import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.*;
+import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.intToBytes;
+import static edu.utdallas.cs6360.davisbase.utils.ByteHelpers.shortToBytes;
 
 /**
- * Class to represent an interior page of a B+tree and it's cells
  * @author Charles Krol
  * @author Matthew Villarreal
  * @author Michael Del Rosario
  * @author Mithil Vijay
  */
-public class TableInteriorPage extends Page{
-	private static final Logger LOGGER = Logger.getLogger(TableInteriorPage.class.getName());
+public class IndexInteriorPage extends Page {
+	private static final Logger LOGGER = Logger.getLogger(IndexInteriorPage.class.getName());
+	private boolean textColumns;
+	private int recordSizeNoText;
 	/**
 	 * Setter for property 'nextPagePointer'.
 	 *
@@ -30,8 +35,8 @@ public class TableInteriorPage extends Page{
 	/**
 	 * 4 byte page number that is the page number of the right child of the Page.<br>
 	 *
-	 * For TableInteriorPages it points to the next right-child sub-tree of our page that can be either a TableLeafPage
-	 * or another TableInteriorPage
+	 * For IndexInteriorPages it points to the next right-child sub-tree of our page that can be either a TableLeafPage
+	 * or another IndexInteriorPage
 	 * @see TableLeafPage
 	 */
 	private int nextPagePointer;
@@ -49,7 +54,7 @@ public class TableInteriorPage extends Page{
 	/**
 	 * Default constructor
 	 */
-	public TableInteriorPage() {
+	public IndexInteriorPage() {
 		super();
 		this.nextPagePointer = 0;
 	}
@@ -59,7 +64,7 @@ public class TableInteriorPage extends Page{
 	 * @param pageType the type of page, root or regular
 	 * @param pageNumber the page number as it appears in the file
 	 */
-	public TableInteriorPage(PageType pageType, int pageNumber, TableConfig tableConfig) {
+	public IndexInteriorPage(PageType pageType, int pageNumber, TableConfig tableConfig) {
 		super(pageType, pageNumber, tableConfig);
 		this.nextPagePointer = -1;
 	}
@@ -70,18 +75,18 @@ public class TableInteriorPage extends Page{
 	 * @param pageNumber the page number as it appears in the file
 	 * @param nextPagePointer a page number acting as a pointer to the right subtree in the file
 	 */
-	public TableInteriorPage(PageType pageType, int pageNumber, int nextPagePointer, TableConfig tableConfig) {
+	public IndexInteriorPage(PageType pageType, int pageNumber, int nextPagePointer, TableConfig tableConfig) {
 		super(pageType, pageNumber, tableConfig);
 		this.nextPagePointer = nextPagePointer;
 	}
 	
 	
 	/**
-	 * A constructor to recreate a TableInteriorPage object from it's byte representation stored in the file.
+	 * A constructor to recreate a IndexInteriorPage object from it's byte representation stored in the file.
 	 *
 	 * @param pageHeader the page header in bytes on the disk
 	 */
-	public TableInteriorPage(byte[] pageHeader, int pageNumber, TableConfig tableConfig) {
+	public IndexInteriorPage(byte[] pageHeader, int pageNumber, TableConfig tableConfig) {
 		super(pageHeader, pageNumber, tableConfig);
 		ByteBuffer headerBuffer = ByteBuffer.wrap(pageHeader);
 		
@@ -113,41 +118,46 @@ public class TableInteriorPage extends Page{
 	/**
 	 * Method returns  8-byte array to be stored at the beginning of each page and acts as a header containing only the
 	 * most basic information associated with reconstructing it from raw bytes.
-	 * @return an 8-byte page header formatted for a TableInteriorPage
+	 * @return an 8-byte page header formatted for a IndexInteriorPage
 	 */
 	@Override
 	public List<Byte> getHeaderBytes() {
-		ArrayList<Byte> tableInteriorPageHeader = new ArrayList<>();
+		ArrayList<Byte> indexInteriorPageHeader = new ArrayList<>();
 		
 		// Add header type code and number of data cells
-		tableInteriorPageHeader.add(PageType.TABLE_INTERIOR_PAGE.getByteCode());
-		tableInteriorPageHeader.add(getNumOfCells());
+		indexInteriorPageHeader.add(PageType.INDEX_INTERIOR_PAGE.getByteCode());
+		indexInteriorPageHeader.add(getNumOfCells());
 		
 		// Convert `startOfCellPointers` to bytes and add to header
 		for(Byte b : shortToBytes(getStartOfCellPointers())) {
-			tableInteriorPageHeader.add(b);
+			indexInteriorPageHeader.add(b);
 		}
 		
 		// Convert `nextPagePointer` to bytes and add to header
 		for(Byte b: intToBytes(this.nextPagePointer)) {
-			tableInteriorPageHeader.add(b);
+			indexInteriorPageHeader.add(b);
 		}
-		return tableInteriorPageHeader;
+		return indexInteriorPageHeader;
 	}
 	
-	
 	/**
-	 * This method calculates and returns the number bytes taken up by the DataCell storage area within the page.<br>
+	 * Abstract method that all subclasses should implement that returns the number of bytes taken up by the data cells.
+	 * This value should already be calculated when preparing the page to be written to the file.<br>
 	 *
 	 * This is method is mainly used as a last resort if that mistakenly not saved, not calculated, or not set for some
 	 * other reason.<br>
 	 *
-	 * For TableInteriorPages since all cells are 8 bytes we simply return TABLE_INTERIOR_CELL_SIZE * numOfCells
 	 * @return the number of bytes taken up by the DataCell storage area
 	 */
 	short getSizeOfDataCells() {
-		return (short)(getNumOfCells() * TABLE_INTERIOR_CELL_SIZE);
-		
+		if(this.textColumns) {
+			short num = ZERO;
+			for (DataCell leafCell : getDataCells()) {
+				num += leafCell.size();
+			}
+			return num;
+		}
+		return (short)(getNumOfCells() * this.recordSizeNoText);
 	}
 	
 	int getNextPage(int rowId) {
@@ -166,7 +176,7 @@ public class TableInteriorPage extends Page{
 	}
 	
 	/**
-	 * Determines if two TableInteriorPages are equal by comparing their page numbers, pointers, and data cells
+	 * Determines if two IndexInteriorPages are equal by comparing their page numbers, pointers, and data cells
 	 * @param o an object to compare
 	 * @return true if they are the same data cell, false otherwise
 	 */
@@ -179,14 +189,14 @@ public class TableInteriorPage extends Page{
 			return false;
 		}
 		
-		// If object is not TableInteriorPage return false
-		if (!(o instanceof TableInteriorPage)) {
+		// If object is not IndexInteriorPage return false
+		if (!(o instanceof IndexInteriorPage)) {
 			return false;
 		}
 		
-		// Since not null and TableInteriorPage
-		// Cast to TableInteriorPage
-		TableInteriorPage that = (TableInteriorPage) o;
+		// Since not null and IndexInteriorPage
+		// Cast to IndexInteriorPage
+		IndexInteriorPage that = (IndexInteriorPage) o;
 		
 		return this.nextPagePointer == that.getNextPagePointer() && this.getPageNumber() == that.getPageNumber() &&
 				this.getPageType() == that.getPageType() && this.getNumOfCells() == that.getNumOfCells() &&

@@ -433,7 +433,7 @@ public class DataRecord {
 	 * DataRecord's column data
 	 * @return a String array containing the DataRecord's column data
 	 */
-	private ArrayList<String> getColumnData() { return this.columnData; }
+	ArrayList<String> getColumnData() { return this.columnData; }
 	
 	/**
 	 * Method that outputs the values in a DataRecord
