@@ -1,6 +1,6 @@
 package edu.utdallas.cs6360.davisbase;
 
-import edu.utdallas.cs6360.davisbase.trees.DataRecord;
+import edu.utdallas.cs6360.davisbase.DatabaseType;
 import edu.utdallas.cs6360.davisbase.trees.DataType;
 import edu.utdallas.cs6360.davisbase.trees.TableTree;
 import edu.utdallas.cs6360.davisbase.utils.FileHandler;
@@ -25,7 +25,7 @@ import static edu.utdallas.cs6360.davisbase.Config.*;
 
 public class DavisBase {
     private static boolean isExit = false;
-    
+
 
     /**
      * The Scanner class is used to collect user commands from the prompt
@@ -177,7 +177,11 @@ public class DavisBase {
                     if (commandTokens.get(1).equals("index") || commandTokens.get(1).equals("unique")) {
                         parseCreateIndex(userCommand);
                     } else {
-                        parseCreateTable(userCommand);
+                        try {
+                            parseCreateTable(userCommand);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                 } else {
                     System.out.println("I didn't understand the command: \"" + userCommand + "\"");
@@ -220,10 +224,20 @@ public class DavisBase {
      * @param showTableString is a String of the user input
      */
     private static void showTable(String showTableString) {
-        System.out.println("STUB: This is the showTable method.");
+        //System.out.println("STUB: This is the showTable method.");
 
         if (checkShowTable(showTableString)) {
-            System.out.println("SUCCESS! This will print all tables");
+            //System.out.println("SUCCESS! This will print all tables");
+
+            //TODO: Finish show all tables
+            try {
+                TableTree metaDataTables = new TableTree("davisbase_tables", DatabaseType.CATALOG);
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+
         }
 
     }
@@ -234,9 +248,16 @@ public class DavisBase {
      * @param dropTableString is a String of the user input
      */
     private static void dropTable(String dropTableString) {
-        System.out.println("STUB: This is the dropTable method.");
+//        System.out.println("STUB: This is the dropTable method.");
         if (checkDropTable(dropTableString)) {
-            System.out.println("\tParsing the string:\"" + dropTableString + "\"");
+            ArrayList<String> tokens = cleanCommand(dropTableString);
+            if(FileHandler.findTable(tokens.get(2)))
+            {
+                System.out.println("\tParsing the string:\"" + dropTableString + "\"");
+
+                //TODO: Finish drop table implementation
+
+            }
         }
     }
 
@@ -246,9 +267,40 @@ public class DavisBase {
      * @param queryString is a String of the user input
      */
     private static void parseQuery(String queryString) {
-        System.out.println("STUB: This is the parseQuery method");
+        //System.out.println("STUB: This is the parseQuery method");
+
         if (checkQuery(queryString)) {
-            System.out.println("\tParsing the string:\"" + queryString + "\"");
+            ArrayList<String> tokens = cleanCommand(queryString);
+            //System.out.println(tokens.get(3));
+            if(FileHandler.findTable(getTableNameFromSelect(tokens)))
+            {
+                //System.out.println("\tParsing the string:\"" + queryString + "\"");
+
+                //TEST: Create a dummy select fields to test printTable
+                String[] colName = {"name", "age"};
+                String[][] data = {{"michael del rosario", "23"}, {"matt villarreal", "22"}, {"cory krol", "21"}, {"mithl", "23"}};
+
+                //Temporary placement for getting columns and condition
+                getColumnsFromSelect(tokens);
+                getConditionStatement(tokens);
+
+                //TODO: Finish Select method with tables
+                TableTree tree = new TableTree();
+
+
+                //TODO: create a function that will get all columns in the select statement.
+                //Get column names
+                ArrayList<String> colNames = getColumnsFromSelect(tokens);
+
+                //TODO: create a function that will store the WHERE statement
+                ArrayList<String> cond = getConditionStatement(tokens);
+
+
+
+
+                //Print Table
+                printTable(colName, data);
+            }
         }
     }
 
@@ -258,9 +310,27 @@ public class DavisBase {
      * @param updateString is a String of the user input
      */
     private static void parseUpdate(String updateString) {
-        System.out.println("STUB: This is the dropTable method");
+//        System.out.println("STUB: This is the dropTable method");
         if (checkUpdate(updateString)) {
-            System.out.println("Parsing the string:\"" + updateString + "\"");
+            ArrayList<String> tokens = cleanCommand(updateString);
+            if(FileHandler.findTable(tokens.get(1)))
+            {
+                System.out.println("\tParsing the string:\"" + updateString + "\"");
+
+                //Get update column name and value and condition statment
+                ArrayList<String> updateArray = getUpdateColumns(tokens);
+                ArrayList<String> con = getConditionStatement(tokens);
+
+                //TEST:See column names and values
+                //System.out.println("Column: " + updateArray[0] + "\tValue: " + updateArray[2]);
+
+                System.out.println("Updating columns" + "[" + updateArray.get(0) + " " + updateArray.get(1) + " " + updateArray.get(2) + "]...");
+
+                System.out.println("with condition [" + con.get(0) + " " + con.get(1) + " " + con.get(2) + "]...");
+
+                //TODO: Finish update implementation
+
+            }
         }
     }
 
@@ -270,9 +340,24 @@ public class DavisBase {
      * @param deleteString is a String of the user input
      */
     private static void parseDelete(String deleteString) {
-        System.out.println("STUB: This is the parseDelete method.");
+//        System.out.println("STUB: This is the parseDelete method.");
         if (checkDelete(deleteString)) {
-            System.out.println("\tParsing the string:\"" + deleteString + "\"");
+            ArrayList<String> tokens = cleanCommand(deleteString);
+            if(FileHandler.findTable(tokens.get(2)))
+            {
+                System.out.println("\tParsing the string:\"" + deleteString + "\"");
+                ArrayList<String> con = getConditionStatement(tokens);
+
+                //TODO: Finish delete implementation
+                if(con.size() == 0)
+                {
+                    System.out.println("Deleting all records...");
+                }
+                else
+                {
+                    System.out.println("Deleting records of condition [" + con.get(0) + " " + con.get(1) + " " + con.get(2) + "]...");
+                }
+            }
         }
     }
 
@@ -281,11 +366,12 @@ public class DavisBase {
      * Stub method for creating new tables
      *
      * @param createTableString is a String of the user input
+     * @throws IOException
      */
-    private static void parseCreateTable(String createTableString) {
+    private static void parseCreateTable(String createTableString) throws IOException {
 
-        System.out.println("STUB: Calling your method to create a table");
-        System.out.println("Parsing the string:\"" + createTableString + "\"");
+        //System.out.println("STUB: Calling your method to create a table");
+        //System.out.println("Parsing the string:\"" + createTableString + "\"");
 
         if (!checkCreateTable(createTableString)) {
             return;
@@ -297,52 +383,92 @@ public class DavisBase {
 //            if (!FileHandler.createTable(tokens.get(2))) {
 //                System.out.println("OOPS! Table " + tokens.get(2) + " already exists");
 //            } else {
-                ArrayList<DataType> colTypes = getColTypes(tokens);
-                String[] isNull = getIsColumnsNullableFromCreateQuery(tokens);
-                String tablename = tokens.get(2);
-                TableTree tableTree = new TableTree(tablename, colTypes);
+            ArrayList<DataType> colTypes = getColTypes(tokens);
+            String tablename = tokens.get(2);
 
+
+            TableTree tableTree = new TableTree(tablename, colTypes);
+
+            //Create table trees objects for the metadata
+            TableTree metaDataTables = new TableTree("davisbase_tables", DatabaseType.CATALOG);
+            TableTree metaDataColumns = new TableTree("davisbase_columns", DatabaseType.CATALOG);
+
+
+            //TODO: Finish create table implementation.
+            /*  Code to insert a row in the davisbase_tables table
+             *  i.e. database catalog meta-data
+             */
+
+            //Insert table row into davisbase_tables.tbl
+            ArrayList<DataType> tableType = new ArrayList<DataType>();
+            tableType.add(DataType.TEXT_TYPE_CODE);
+            ArrayList<String> tableName = new ArrayList<String>();
+            tableName.add(tokens.get(2));
+            //TODO: Getting a "java.lang.IllegalStateException: Tree can't have null root" exception here
+				metaDataTables.insert(tableType, tableName);
+
+
+
+
+            /*  Code to insert rows in the davisbase_columns table
+             *  for each column in the new table
+             *  i.e. database catalog meta-data
+             */
+
+            //Insert Column rows into davisbase_columns.tbl
+
+
+            ArrayList<DataType> columnDataTypeArray = getColumnArray(colTypes);
+            ArrayList<String> columnNames = getColumnNamesFromCreateQuery(tokens);
+            ArrayList<String> ordinalPositionArray = getOrdinalPositionArray(colTypes);
+            ArrayList<String> isColumnNullableArray = getIsColumnsNullableFromCreateQuery(tokens);
+
+            for(int i = 0; i < columnNames.size(); i++)
+            {
+                ArrayList<String> columns = new ArrayList<String>();
+                columns.add(tokens.get(2));
+                columns.add(columnNames.get(i));
+                columns.add(DataType.getDataTypeString(columnDataTypeArray.get(i)));
+                columns.add(ordinalPositionArray.toString());
+                columns.add(isColumnNullableArray.get(i));
+                ArrayList <DataType> dt = new ArrayList<DataType>();
+                dt.add(DataType.TEXT_TYPE_CODE);
+                dt.add(DataType.TEXT_TYPE_CODE);
+                dt.add(DataType.TEXT_TYPE_CODE);
+                dt.add(DataType.TINY_INT_TYPE_CODE);
+                dt.add(DataType.TEXT_TYPE_CODE);
+
+                //TODO: Getting a "java.lang.IllegalStateException: Tree can't have null root" exception here
+					metaDataColumns.insert(dt, columns);
+
+            }
 //                System.out.println(columnNameTypeMap);
-                System.out.println("SUCCESS! Creating table");
+            //System.out.println("SUCCESS! Creating table");
             //}
         }
 
-//		/* Define table file name */
-//		String tableFileName = createTableTokens.get(2) + ".tbl";
-//
-//		/* YOUR CODE GOES HERE */
-//		
-//		/*  Code to create a .tbl file to contain table data */
-//		try {
-//			/*  Create RandomAccessFile tableFile in read-write mode.
-//			 *  Note that this doesn't create the table file in the correct directory structure
-//			 */
-//			RandomAccessFile tableFile = new RandomAccessFile(tableFileName, "rw");
-//			tableFile.setLength(pageSize);
-//			tableFile.seek(0);
-//			tableFile.writeInt(63);
-//		}
-//		catch(Exception e) {
-//			System.out.println(e);
-//		}
 
-        /*  Code to insert a row in the davisbase_tables table
-         *  i.e. database catalog meta-data
-         */
 
-        /*  Code to insert rows in the davisbase_columns table
-         *  for each column in the new table
-         *  i.e. database catalog meta-data
-         */
     }
 
     /**
      * @param createIndexString string
      */
     private static void parseCreateIndex(String createIndexString) {
-        System.out.println("STUB: This is the createQuery method");
+//        System.out.println("STUB: This is the createIndexQuery method");
         if (checkCreateIndex(createIndexString)) {
-            System.out.println("\tParsing the string:\"" + createIndexString + "\"");
+            ArrayList<String> tokens = cleanCommand(createIndexString);
+            if(FileHandler.findTable(getTableNameFromCreateIndex(tokens)))
+            {
+                System.out.println("\tParsing the string:\"" + createIndexString + "\"");
+
+                String indexName = getIndexNameFromCreateIndex(tokens);
+                String isUnique = isUniqueIndex(tokens);
+                ArrayList<String> columns = getColumnsFromCreateIndex(tokens);
+
+                //TODO: Finish create index implementation
+
+            }
         }
     }
 
@@ -352,45 +478,31 @@ public class DavisBase {
      * @param insertString is a String of the user input
      */
     private static void parseInsert(String insertString) {
-        System.out.println("STUB: This is the parseInsert method.");
+        //System.out.println("STUB: This is the dropTable method.");
         if (checkInsert(insertString)) {
-            System.out.println("\tParsing the string:\"" + insertString + "\"");
             ArrayList<String> tokens = cleanCommand(insertString);
-            String tablename = tokens.get(2);
-            TableTree tableTree = new TableTree(tablename, DatabaseType.USER);
-            ArrayList<ArrayList<String>> rows = getRowsFromInsertQuery(tokens);
-            for (ArrayList<String> colValues : rows) {
-                tableTree.insert(tableTree.getColTypes(), colValues);
-            }
-        }
-    }
+            if(FileHandler.findTable(getTableNameFromInsert(tokens)))
+            {
+                System.out.println("\tParsing the string:\"" + insertString + "\"");
 
 
-    /**
-     * This function will give rows/column values to insert from insert query
-     * @param tokens clean command tokens
-     * @return ArrayList<String[]> which contains multiple rows t insert
-     */
-    private static ArrayList<ArrayList<String>> getRowsFromInsertQuery(ArrayList<String> tokens) {
-        int i = tokens.indexOf("values");
-        boolean start = false;
-        ArrayList<ArrayList<String>> rows = new ArrayList<>();
-        ArrayList<String> row = new ArrayList<>();
-        for(; i < tokens.size(); i++) {
-            if(tokens.get(i).equals("(")){
-                start = true;
-                row.clear();
-            }
-            else if(tokens.get(i).equals(")")){
-                start = false;
-                rows.add(row);
-                row.clear();
-            }
-            else if(!tokens.get(i).equals(",") && start){
-                row.add(tokens.get(i));
+                //ArrayList<DataType> columns = getColumnsFromInsert(tokens);
+                ArrayList<String> values = getValuesFromInsert(tokens);
+
+                //TODO: Finish insert implementation. Getting "java.lang.NullPointerException" here
+//        		TableTree tb;
+//				try {
+//					tb = new TableTree(getTableNameFromInsert(tokens), DatabaseType.USER);
+//					tb.insert(tb.getTreeConfig().getColTypes(), values);
+//				} catch (IOException e) {
+//					// TODO Auto-generated catch block
+//					e.printStackTrace();
+//				}
+
+
             }
         }
-        return rows;
+
     }
 
     /**
@@ -800,7 +912,7 @@ public class DavisBase {
 
         for (int itr = 1; itr < tokens.size(); itr++) {
             //TEST: see iteration, string, and state.
-            System.out.println(itr + ": " + tokens.get(itr) + "; state: " + state);
+            // System.out.println(itr + ": " + tokens.get(itr) + "; state: " + state);
 
             switch (state) {
                 case 'C':
@@ -1084,11 +1196,11 @@ public class DavisBase {
      * @param tokens query tokens
      * @return array of column names
      */
-    private static String[] getColumnNamesFromCreateQuery(ArrayList<String> tokens){
+    private static ArrayList<String> getColumnNamesFromCreateQuery(ArrayList<String> tokens){
         ArrayList<String> columns = new ArrayList<>();
         // start from 4 as column names start from index 4 in tokens list
         for(int i = 4; i < tokens.size() - 2; i++){
-            // add token which is after comma as column name
+            // add token which is after comma as column name and after that it's column type
             if(tokens.get(i).contains(",")){
                 columns.add(tokens.get(i+1));
             }
@@ -1096,7 +1208,12 @@ public class DavisBase {
                 columns.add(tokens.get(i));
             }
         }
-        return columns.toArray(new String[columns.size()]);
+        //Test see Array
+//        for(int i = 0; i < columns.size();i++)
+//        {
+//        	System.out.println(columns.get(i));
+//        }
+        return columns;
     }
 
     /**
@@ -1118,7 +1235,50 @@ public class DavisBase {
                 dataTypeArrayList.add(DataType.getDataTypeCodeFromString(tokens.get(i+1)));
             }
         }
+        //Test see Array
+//        for(int i = 0; i < dataTypeArrayList.size();i++)
+//        {
+//        	System.out.println(dataTypeArrayList.get(i));
+//        }
+
         return dataTypeArrayList;
+    }
+
+    /**
+     * Create an array of column datatypes for adding into davisbase_columns
+     * @param array
+     * @return array of DataType
+     */
+    private static ArrayList<DataType> getColumnArray(ArrayList<DataType> colTypes){
+        ArrayList<DataType>columnArrayList = new ArrayList<>();
+
+        for(int i = 0; i < colTypes.size(); i++)
+        {
+            columnArrayList.add(DataType.TEXT_TYPE_CODE);
+        }
+
+        return columnArrayList;
+    }
+
+    /**
+     * Create an array of ordinal position for adding into davisbase_columns
+     * @param array
+     * @return array of integers
+     */
+    private static ArrayList<String> getOrdinalPositionArray(ArrayList<DataType> data){
+        ArrayList<String> ordArray = new ArrayList<>();
+
+        for(int i = 0; i < data.size(); i++)
+        {
+            ordArray.add(Integer.toString(i));
+
+            //Test see Array;
+            //System.out.println(ordArray[i]);
+        }
+
+
+
+        return ordArray;
     }
 
     /**
@@ -1126,16 +1286,19 @@ public class DavisBase {
      * @param tokens
      * @return String[] of "true"/"false"
      */
-    private static String[] getIsColumnsNullableFromCreateQuery(ArrayList<String> tokens){
+    private static ArrayList<String> getIsColumnsNullableFromCreateQuery(ArrayList<String> tokens){
         ArrayList<String> columns = new ArrayList<>();
         // start from 4 as column names start from index 4 in tokens list
         StringBuilder s = new StringBuilder();
         for(int i = 4; i < tokens.size(); i++){
             if(tokens.get(i).equals(",") || tokens.get(i).equals(")")){
                 if(s.toString().contains("not null") || s.toString().contains("primary key")){
+                    //TEST: See what attribute is not nullable.
+                    //System.out.println(s.toString() + " is not nullable.");
                     columns.add("false");
                 }
                 else{
+
                     columns.add("true");
                 }
                 s.setLength(0);
@@ -1146,8 +1309,392 @@ public class DavisBase {
             }
 
         }
-        return columns.toArray(new String[columns.size()]);
+        return columns;
     }
 
+    /**
+     * Method to Print a table using a string array for column names and a 2D string array data
+     * @param colName, data
+     */
+    private static void printTable(String[] colName, String[][] data)
+    {
+        //This int values determine how many lines needs to be printed for the dividing line
+        //TODO: Look at algorithm to fix printing
+        int colNameArraySize = colName.length;
+        int tabSize = 0;
+        int largestString = 0;
 
+        for(int i = 0; i < colName.length; i++)
+        {
+            if(largestString < colName[i].length())
+                largestString = colName[i].length();
+        }
+
+        for(int i = 0; i < data.length; i++)
+        {
+            for(int j = 0; j < data[i].length;j++)
+            {
+                if(largestString < data[i][j].length())
+                    largestString = data[i][j].length();
+            }
+        }
+
+
+
+        //Print out all Column Names
+        for(int i = 0; i < colName.length; i++)
+        {
+            String tabs = "";
+            tabSize = (int) Math.ceil((largestString-colName[i].length())/4)+1;
+
+            for(int k = 0;k< tabSize;k++)
+                tabs += "\t";
+
+            System.out.print(colName[i] + tabs);
+            colNameArraySize += largestString;//Add extra size for tab
+
+            //Print a newLine at the last column
+            if(i + 1 == colName.length)
+                System.out.print("\n");
+        }
+
+        //Print a dividing line
+        for(int i = colNameArraySize; i > 0; i--)
+            System.out.print("-");
+        System.out.print("\n");
+
+        //Print data
+        for(int i = 0; i < data.length; i++)
+        {
+            for(int j = 0; j < data[i].length;j++)
+            {
+                String tabs = "";
+                tabSize = (int) Math.ceil((largestString-data[i][j].length())/4)+1;
+
+                for(int k = 0;k< tabSize;k++)
+                    tabs += "\t";
+
+                System.out.print(data[i][j] + tabs);
+            }
+            System.out.print("\n");
+        }
+    }
+
+    /**
+     * Get a table name from the select query
+     * @param tokens
+     * @return String
+     */
+    private static String getTableNameFromSelect(ArrayList<String> tokens)
+    {
+        String tblName ="";
+        for(int i=0; i < tokens.size(); i++)
+        {
+            if(tokens.get(i).equals("from"))
+            {
+                tblName = tokens.get(i+1);
+
+                //TEST: see return value
+                //System.out.println("Table name: " + tblName);
+
+                return tblName;
+            }
+        }
+
+        return tblName;
+    }
+
+    private static ArrayList<String> getColumnsFromSelect(ArrayList<String> tokens)
+    {
+        ArrayList<String> colNames = new ArrayList<>();
+        int index = 0;
+        while(index<tokens.size() && !tokens.get(index).equals("from"))
+        {
+
+            if(!tokens.get(index).equals("select") && !tokens.get(index).equals(","))
+            {
+                colNames.add(tokens.get(index));
+            }
+
+
+
+            index++;
+        }
+
+        //Return an empty string if there is a * and other column names within the select statement
+        if(colNames.contains("*") && colNames.size() > 1)
+        {
+
+            colNames.clear();
+            return colNames;
+        }
+
+        //TEST: See return variable.
+//    	for(int i=0;i<colNames.size();i++)
+//    		System.out.println(colNames.get(i));
+
+        return colNames;
+    }
+
+    /**
+     * Create an array for storing the condition portion of the all SQL statements
+     * @param tokens
+     * @return String array
+     */
+    private static ArrayList<String> getConditionStatement(ArrayList<String> tokens)
+    {
+        ArrayList<String> conTokens = new ArrayList<>();
+        int index = 0;
+        boolean whereReached = false;
+
+        while(index<tokens.size())
+        {
+            if(whereReached)
+            {
+                conTokens.add(tokens.get(index));
+            }
+
+            if(tokens.get(index).equals("where"))
+                whereReached = true;
+
+            index++;
+        }
+
+        //TEST: See return variable.
+//    	for(int i=0;i<conTokens.size();i++)
+//    		System.out.println(conTokens.get(i));
+
+        return conTokens;
+    }
+
+    /**
+     * Create an array for storing the column names of the update statement
+     * @param tokens
+     * @return String array
+     */
+    private static ArrayList<String> getUpdateColumns(ArrayList<String> tokens)
+    {
+        ArrayList<String> upTokens = new ArrayList<>();
+
+        int index = 0;
+        boolean record = false;//This boolean determines if upTokens adds elements to the arrayList
+
+        while(index<tokens.size())
+        {
+
+
+            //If where token is reach, stop adding elements
+            if(record && tokens.get(index).equals("where"))
+            {
+                record = false;
+            }
+            else if(record && !tokens.get(index).equals(","))//Add all elements except for commas
+            {
+                upTokens.add(tokens.get(index));
+            }
+
+            if(tokens.get(index).equals("set"))//when set token is reached, start adding elements
+                record = true;
+
+            index++;
+        }
+
+        //TEST: See return variable.
+//    	for(int i=0;i<upTokens.size();i++)
+//    		System.out.println(upTokens.get(i));
+
+        return upTokens;
+    }
+
+    /**
+     * Get table name from an insert statement
+     * @param tokens
+     * @return String
+     */
+    private static String getTableNameFromInsert(ArrayList<String> tokens)
+    {
+        String tblName ="";
+        for(int i=0; i < tokens.size(); i++)
+        {
+            if(tokens.get(i).equals("into"))
+            {
+                tblName = tokens.get(i+1);
+
+                //TEST: see return value
+                //System.out.println("Table name: " + tblName);
+
+                return tblName;
+            }
+        }
+
+        return tblName;
+    }
+
+    /**
+     * Create an array for storing the column names for insert statement
+     * @param tokens
+     * @return String array
+     */
+    private static ArrayList<String> getColumnsFromInsert(ArrayList<String> tokens)
+    {
+        ArrayList<String> colNames = new ArrayList<>();
+        int index = 0;
+        boolean record = false;
+
+        while(index<tokens.size() && !tokens.get(index).equals("values"))
+        {
+
+            if(record && !tokens.get(index).equals("(") && !tokens.get(index).equals(",") && !tokens.get(index).equals(")"))
+            {
+                colNames.add(tokens.get(index));
+            }
+
+            if(tokens.get(index).equals("("))//Start adding elements after table name token
+                record = true;
+
+            index++;
+        }
+
+        //TEST: See return variable.
+//    	for(int i=0;i<colNames.size();i++)
+//    		System.out.println(colNames.get(i));
+
+        return colNames;
+    }
+
+    /**
+     * Create an array for storing the values for insert statement
+     * @param tokens
+     * @return String array
+     */
+    private static ArrayList<String> getValuesFromInsert(ArrayList<String> tokens)
+    {
+        ArrayList<String> values = new ArrayList<String>();
+        int index = 0;
+        boolean record = false;
+
+        while(index<tokens.size())
+        {
+
+            if(record && !tokens.get(index).equals("(") && !tokens.get(index).equals(",") && !tokens.get(index).equals(")"))
+            {
+                values.add((tokens.get(index)));
+            }
+
+            if(tokens.get(index).equals("values"))//Start adding elements after values token
+                record = true;
+
+            index++;
+        }
+
+        //TEST: See return variable.
+//    	for(int i=0;i<values.size();i++)
+//    		System.out.println(values.get(i));
+
+        return values;
+    }
+
+    /**
+     * Finds an unique token in create index statement.
+     * Returns String true if yes; otherwise returns String false
+     * @param tokens
+     * @return String
+     */
+    private static String isUniqueIndex(ArrayList<String> tokens)
+    {
+        for(int i=0; i < tokens.size() && !tokens.get(i).equals("on"); i++)
+        {
+            if(tokens.get(i).equals("unique"))
+            {
+                //TEST: see return value
+                //System.out.println("Index is unique");
+
+                return "true";
+            }
+        }
+
+        //TEST: see return value
+        //System.out.println("Index is not unique");
+        return "false";
+    }
+
+    /**
+     * Get table name from an create index statement
+     * @param tokens
+     * @return String
+     */
+    private static String getTableNameFromCreateIndex(ArrayList<String> tokens)
+    {
+        String tblName ="";
+        for(int i=0; i < tokens.size(); i++)
+        {
+            if(tokens.get(i).equals("on"))
+            {
+                tblName = tokens.get(i+1);
+
+                //TEST: see return value
+                //System.out.println("Table name: " + tblName);
+
+                return tblName;
+            }
+        }
+
+        return tblName;
+    }
+
+    /**
+     * Get index name from an create index statement
+     * @param tokens
+     * @return String
+     */
+    private static String getIndexNameFromCreateIndex(ArrayList<String> tokens)
+    {
+        String indexName ="";
+        for(int i=0; i < tokens.size(); i++)
+        {
+            if(tokens.get(i).equals("index"))
+            {
+                indexName = tokens.get(i+1);
+
+                //TEST: see return value
+                System.out.println("Table name: " + indexName);
+
+                return indexName;
+            }
+        }
+
+        return indexName;
+    }
+
+    /**
+     * Create an array for storing the column names for create index statement
+     * @param tokens
+     * @return String array
+     */
+    private static ArrayList<String> getColumnsFromCreateIndex(ArrayList<String> tokens)
+    {
+        ArrayList<String> colNames = new ArrayList<>();
+        int index = 0;
+        boolean record = false;
+
+        while(index<tokens.size())
+        {
+
+            if(record && !tokens.get(index).equals("(") && !tokens.get(index).equals(",") && !tokens.get(index).equals(")"))
+            {
+                colNames.add(tokens.get(index));
+            }
+
+            if(tokens.get(index).equals("("))//Start adding elements after table name token
+                record = true;
+
+            index++;
+        }
+
+        //TEST: See return variable.
+//    	for(int i=0;i<colNames.size();i++)
+//    		System.out.println(colNames.get(i));
+
+        return colNames;
+    }
 }

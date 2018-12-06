@@ -129,13 +129,38 @@ public enum DataType {
 				return NULL1_TYPE_CODE;
 		}
 	}
+
+	public static String getDataTypeString(DataType data) {
+		switch (data) {
+			case INT_TYPE_CODE:
+				return "int";
+			case TINY_INT_TYPE_CODE:
+				return "tinyint";
+			case SHORT_TYPE_CODE:
+				return "smallint";
+			case LONG_TYPE_CODE:
+				return "bigint";
+			case REAL_TYPE_CODE:
+				return "real";
+			case DOUBLE_TYPE_CODE:
+				return "double";
+			case DATETIME_TYPE_CODE:
+				return "datetime";
+			case DATE_TYPE_CODE:
+				return "date";
+			case TEXT_TYPE_CODE:
+				return "text";
+			default:
+				return "NULL";
+		}
+	}
 	
 	public static boolean sameColTypes(ArrayList<DataType> typeList1, ArrayList<DataType> typeList2) {
 		if(typeList1 == typeList2)
 			return true;
 		
-		if (Optional.ofNullable(typeList1).isPresent() ||
-				Optional.ofNullable(typeList2).isPresent() ||
+		if (!Optional.ofNullable(typeList1).isPresent() ||
+				!Optional.ofNullable(typeList2).isPresent() ||
 				typeList1.size() != typeList2.size()) {
 			return false;
 		}

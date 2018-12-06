@@ -1,5 +1,6 @@
 package edu.utdallas.cs6360.davisbase.trees;
 
+import edu.utdallas.cs6360.davisbase.Config;
 import edu.utdallas.cs6360.davisbase.DatabaseType;
 import edu.utdallas.cs6360.davisbase.utils.FileHandler;
 
@@ -141,7 +142,7 @@ public class TableTree {
 		openTreeFile();
 		
 	}
-	
+
 	/**
 	 * Constructor that accepts the table name and the database type as arguments. <br>
 	 *
@@ -153,11 +154,31 @@ public class TableTree {
 	 * This constructor should be used when attemping to access a system catalog table
 	 * @param databaseName the name of the table to access
 	 * @param type DatabaseType.CATALOG or DatabaseType.USER
+	 * @throws IOException
 	 */
-	public TableTree(String databaseName, DatabaseType type) {
+	public TableTree(String databaseName, DatabaseType type) throws IOException {
 		this.databaseName = databaseName;
 		this.databaseType = type;
+		if(databaseName.equals(Config.CATALOG_TABLE))
+		{
+			ArrayList<DataType> tableType = new ArrayList<DataType>();
+			tableType.add(DataType.TEXT_TYPE_CODE);
+			this.treeConfig = new TableConfig(tableType);
+		}
+		else if(databaseName.equals(Config.CATALOG_COLUMN))
+		{
+			ArrayList <DataType> dt = new ArrayList<DataType>();
+			dt.add(DataType.TEXT_TYPE_CODE);
+			dt.add(DataType.TEXT_TYPE_CODE);
+			dt.add(DataType.TEXT_TYPE_CODE);
+			dt.add(DataType.TINY_INT_TYPE_CODE);
+			dt.add(DataType.TEXT_TYPE_CODE);
+			this.treeConfig = new TableConfig(dt);
+		}
+
 		this.fileName = FileHandler.getTableFileName(this.databaseName, this.databaseType);
+//		System.out.println(fileName);
+		openTreeFile();
 	}
 	
 	/**
@@ -184,7 +205,7 @@ public class TableTree {
 	 */
 	public void insert(ArrayList<DataType> colTypes, ArrayList<String> colValues){
 		LOGGER.log(Level.INFO, "Entering insert(colTypes, colValues)");
-		if (Optional.ofNullable(this.root).isPresent()) {
+		if (!Optional.ofNullable(this.root).isPresent()) {
 			throw new IllegalStateException("Tree can't have null root");
 		}
 		
@@ -380,7 +401,7 @@ public class TableTree {
 		// Assuming a parent Interior Page
 		DataCell dataCell;
 		Page rightChild = null;
-		int medianRowId = this.newLeftChild.getMedianRowId();
+//		int medianRowId = this.newLeftChild.getMedianRowId();
 		
 		// If leaf Page, create a new leaf page
 		if (this.newLeftChild.isLeaf()) {
@@ -823,5 +844,9 @@ public class TableTree {
 		}
 		TableInteriorPage interiorPage = (TableInteriorPage)page;
 		return getCurrentHeight(getPage(interiorPage.getNextPagePointer())) + ONE;
+	}
+
+	public ArrayList<DataType> getColTypes(){
+		return treeConfig.getColTypes();
 	}
 }

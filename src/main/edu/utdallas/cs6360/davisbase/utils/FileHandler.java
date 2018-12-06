@@ -1,6 +1,8 @@
 package edu.utdallas.cs6360.davisbase.utils;
 
+import edu.utdallas.cs6360.davisbase.Config;
 import edu.utdallas.cs6360.davisbase.DatabaseType;
+import edu.utdallas.cs6360.davisbase.trees.TableTree;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,12 +23,12 @@ public class FileHandler {
 	 * A logger that logs things for logging purposes
 	 */
     private static final Logger LOGGER = Logger.getLogger(FileHandler.class.getName());
-	
+
 	/**
 	 * Private constructor to override the implicit constructor
 	 */
 	private FileHandler() { throw new IllegalStateException("FileHandler Utility Class"); }
-    
+
     /**
      * This static method creates the DavisBase data storage container
      * and then initializes two .tbl files to implement the two
@@ -40,10 +42,18 @@ public class FileHandler {
         createDatabaseDirectory(USER_DATA_DIRECTORY);
 
         /** Create davisbase_tables system catalog */
-        createTableFile(getTableFileName(CATALOG_TABLE, DatabaseType.CATALOG));
+        try {
+            TableTree tableTreeTables = new TableTree(Config.CATALOG_TABLE, DatabaseType.CATALOG);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         /** Create davisbase_columns system catalog */
-        createTableFile(getTableFileName(CATALOG_COLUMN, DatabaseType.CATALOG));
+        try {
+            TableTree tableTreeColumns = new TableTree(CATALOG_COLUMN, DatabaseType.CATALOG);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
     }
 
@@ -68,7 +78,7 @@ public class FileHandler {
 	        LOGGER.log(Level.SEVERE, se.toString());
         }
     }
-	
+
 	/**
 	 * A static method to return a table file name given it's name
 	 * @return
@@ -80,7 +90,7 @@ public class FileHandler {
 			return CATALOG_DIRECTORY + "/" + tableName + ".tbl";
 		}
 	}
-	
+
     /**
      * A static method that creates a file from a table name and checks
      * if it exists and is not a directory
@@ -91,11 +101,11 @@ public class FileHandler {
         File f = new File(fileName);
         return f.exists() && !f.isDirectory();
     }
-    
+
     public static boolean createTable(String tableName) {
     	return createTableFile(getTableFileName(tableName, DatabaseType.USER));
     }
-    
+
     public static boolean createTableFile(String fileName) {
         if (!doesTableExist(fileName)) {
             try (RandomAccessFile file = new RandomAccessFile(fileName, "rw")) {
@@ -109,7 +119,7 @@ public class FileHandler {
             return false;
         }
     }
-    
+
     public static void deleteDirectoryWithFiles(String dir) {
     	File directory = new File(dir);
 	    String[] files = directory.list();
@@ -119,9 +129,26 @@ public class FileHandler {
 	    }
 	    directory.delete();
     }
-	
+
 	public static void deleteFile(String dir) {
 		File file = new File(dir);
 		file.delete();
 	}
+
+    /**
+     * A static method that finds the table and return true.
+     * If table does not exists, then print message and return false.
+     * @param tableName the full path for the table
+     * @return boolean if the file exists and is not a directory
+     */
+    public static boolean findTable(String tableName) {
+        String fileName = getTableFileName(tableName, DatabaseType.USER);
+        if(!doesTableExist(fileName))
+        {
+            System.out.println("Table does not exist.");
+            return false;
+        }
+        else
+            return true;
+    }
 }
